@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { NextFunction, Request, Response } from 'express';
-import { REQUEST_ID_HEADER } from './constants.js';
+import { REQUEST_ID_HEADER } from '../constants.js';
 
 /**
  * 요청별 traceId 를 확정하고 응답 헤더로 반환한다.

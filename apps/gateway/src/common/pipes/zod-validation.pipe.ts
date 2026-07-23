@@ -1,7 +1,7 @@
 import { Injectable, type PipeTransform } from '@nestjs/common';
 import type { ZodType } from 'zod';
 import type { FieldError } from '@papertrail/contracts';
-import { ValidationException } from './problem.exception.js';
+import { ValidationException } from '../exceptions/problem.exception.js';
 
 /**
  * Zod 스키마로 요청 값을 검증한다.

@@ -14,9 +14,9 @@ import {
   type FieldError,
   type ProblemDetails,
 } from '@papertrail/contracts';
-import { REQUEST_ID_HEADER } from './constants.js';
+import { REQUEST_ID_HEADER } from '../constants.js';
+import { ProblemException } from '../exceptions/problem.exception.js';
 import { statusToErrorCode } from './exception-mapping.js';
-import { ProblemException } from './problem.exception.js';
 
 interface ResolvedProblem {
   code: ErrorCode;

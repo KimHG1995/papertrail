@@ -1,5 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
-import { SkipResponseTransform } from '../common/skip-response-transform.decorator.js';
+import { SkipResponseTransform } from '../common/decorators/skip-response-transform.decorator.js';
 
 /** 헬스체크. 정형화를 적용하지 않고 원본 그대로 반환한다. */
 @Controller('health')
