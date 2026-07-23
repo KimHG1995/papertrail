@@ -1,0 +1,17 @@
+# mise — 런타임/툴 버전 고정 (https://mise.jdx.dev)
+# `mise install` 로 아래 버전을 설치하고, `mise use` 로 셸에 적용한다.
+# nvm 사용자는 .nvmrc / .node-version 을 통해 동일한 Node 버전으로 맞춰진다.
+
+[tools]
+# Node.js Active LTS (2026 기준). .nvmrc / .node-version 과 동일하게 유지할 것.
+node = "24.18.0"
+# 패키지 매니저. package.json 의 packageManager 필드와 동일하게 유지할 것.
+pnpm = "11.3.0"
+
+[env]
+# 프로젝트 로컬 바이너리를 우선 사용
+_.path = ["./node_modules/.bin"]
+
+[settings]
+# 정확히 명시된 버전만 사용 (자동 상향 방지)
+pin = true

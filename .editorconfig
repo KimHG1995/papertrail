@@ -1,0 +1,25 @@
+# EditorConfig — 어떤 IDE/에디터에서도 동일한 기본 포맷을 강제한다.
+# https://editorconfig.org
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+max_line_length = 100
+
+# 마크다운은 줄 끝 공백 2칸이 강제 줄바꿈 의미를 가지므로 보존
+[*.md]
+trim_trailing_whitespace = false
+
+[*.{yml,yaml}]
+indent_size = 2
+
+[*.{json,jsonc}]
+indent_size = 2
+
+[Makefile]
+indent_style = tab

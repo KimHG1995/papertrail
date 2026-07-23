@@ -1,0 +1,10 @@
+{
+  // 루트 솔루션 파일. 실제 소스는 각 app/package의 tsconfig가 tsconfig.base.json을 확장한다.
+  // 루트 타입체크는 `pnpm typecheck`(워크스페이스 재귀)로 수행한다.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "files": [],
+  "include": []
+}

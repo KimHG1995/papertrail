@@ -1,0 +1,9 @@
+{
+  // markdownlint 규칙 (VSCode 확장 + markdownlint-cli2 공용)
+  // 구조 규칙(빈 줄, 제목 등)은 유지하고, Prettier가 담당하거나 한국어 문서에
+  // 맞지 않는 규칙만 비활성화한다.
+  "default": true,
+  "MD013": false, // line-length: 한국어 문서 특성상 줄 길이 제한 해제
+  "MD040": false, // fenced-code-language: ASCII 다이어그램 등 언어 없는 코드펜스 허용
+  "MD060": false, // table-column-style: 표 포맷은 Prettier가 담당
+}

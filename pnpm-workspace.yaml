@@ -1,0 +1,6 @@
+# pnpm 워크스페이스 — 모노레포 구성
+# apps: 배포 단위 (admin=Next.js, api=NestJS, worker=렌더 워커)
+# packages: 공용 라이브러리 (config, types, sdk 등)
+packages:
+  - 'apps/*'
+  - 'packages/*'

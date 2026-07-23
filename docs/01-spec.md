@@ -21,13 +21,13 @@
 
 ### 1.2 상세
 
-| 기능 | 설명 |
-|------|------|
-| 등록 | Typst 소스 + asset(로고/폰트) + JSON Schema를 하나의 매니페스트로 publish |
-| 태그 이동 | `production` 태그를 특정 매니페스트 해시로 이동(승격) |
-| 버전 목록 | 템플릿별 태그/해시 목록 조회 |
-| 미리보기 | 샘플 데이터로 즉시 렌더(비동기 큐 우회, 관리자 전용) |
-| Diff | 두 버전의 소스 라인 diff + 스키마 필드 추가/삭제/타입변경 |
+| 기능      | 설명                                                                      |
+| --------- | ------------------------------------------------------------------------- |
+| 등록      | Typst 소스 + asset(로고/폰트) + JSON Schema를 하나의 매니페스트로 publish |
+| 태그 이동 | `production` 태그를 특정 매니페스트 해시로 이동(승격)                     |
+| 버전 목록 | 템플릿별 태그/해시 목록 조회                                              |
+| 미리보기  | 샘플 데이터로 즉시 렌더(비동기 큐 우회, 관리자 전용)                      |
+| Diff      | 두 버전의 소스 라인 diff + 스키마 필드 추가/삭제/타입변경                 |
 
 > Papermake는 이미 template publish, 태그 조회, 렌더링, PDF 다운로드 API를 제공한다. PaperTrail은 여기에 **JSON Schema 계약, 승인 워크플로, 미리보기, diff** 를 얹는다.
 
@@ -90,14 +90,14 @@ POST /v1/batches  (CSV + templateRef + mapping)
 
 ### 2.4 재시도 / DLQ 정책
 
-| 항목 | 정책(기본값, 조정 가능) |
-|------|------------------------|
-| 최대 재시도 | 5회 |
-| 백오프 | 지수 백오프 + jitter (예: 2s, 8s, 30s, 2m, 8m) |
-| 재시도 대상 | 일시적 오류(렌더 타임아웃, S3 5xx, Papermake 5xx) |
-| 비재시도 | 스키마 검증 실패, 템플릿 없음(4xx) → 즉시 FAILED |
-| DLQ 진입 | 최대 재시도 초과 → DLQ + 문서 status=FAILED + 오류코드 |
-| DLQ 재처리 | 관리자 수동 재큐(requeue) 지원 |
+| 항목        | 정책(기본값, 조정 가능)                                |
+| ----------- | ------------------------------------------------------ |
+| 최대 재시도 | 5회                                                    |
+| 백오프      | 지수 백오프 + jitter (예: 2s, 8s, 30s, 2m, 8m)         |
+| 재시도 대상 | 일시적 오류(렌더 타임아웃, S3 5xx, Papermake 5xx)      |
+| 비재시도    | 스키마 검증 실패, 템플릿 없음(4xx) → 즉시 FAILED       |
+| DLQ 진입    | 최대 재시도 초과 → DLQ + 문서 status=FAILED + 오류코드 |
+| DLQ 재처리  | 관리자 수동 재큐(requeue) 지원                         |
 
 ### 2.5 멱등성
 
@@ -119,13 +119,13 @@ interface DocumentRenderRecord {
   tenantId: string;
 
   templateName: string;
-  templateTag: string;      // 요청 당시 지정 태그 (예: production)
-  templateHash: string;     // 실제 렌더에 쓰인 불변 매니페스트 해시
+  templateTag: string; // 요청 당시 지정 태그 (예: production)
+  templateHash: string; // 실제 렌더에 쓰인 불변 매니페스트 해시
 
-  inputHash: string;        // 입력 JSON 정규화 후 SHA-256
-  outputHash: string;       // 생성된 PDF SHA-256
+  inputHash: string; // 입력 JSON 정규화 후 SHA-256
+  outputHash: string; // 생성된 PDF SHA-256
 
-  storageKey: string;       // S3 객체 키
+  storageKey: string; // S3 객체 키
   status: 'QUEUED' | 'RENDERING' | 'SUCCEEDED' | 'FAILED';
 
   requestedAt: Date;
@@ -162,11 +162,11 @@ interface DocumentRenderRecord {
 }
 ```
 
-| 값 | 용도 |
-|----|------|
-| `pdf-1.7` | 일반 PDF (기본값) |
-| `a-2b` | 장기 보관용 PDF/A |
-| `a-3b` | 첨부 파일 임베드 가능 PDF/A (전자세금계산서 등) |
+| 값        | 용도                                            |
+| --------- | ----------------------------------------------- |
+| `pdf-1.7` | 일반 PDF (기본값)                               |
+| `a-2b`    | 장기 보관용 PDF/A                               |
+| `a-3b`    | 첨부 파일 임베드 가능 PDF/A (전자세금계산서 등) |
 
 Papermake의 HTTP 렌더링이 PDF 1.7, PDF/A-2b, PDF/A-3b를 지원하므로 그대로 위임한다.
 
