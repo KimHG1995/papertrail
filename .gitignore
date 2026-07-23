@@ -35,7 +35,6 @@ Cargo.lock
 tmp/
 .tmp/
 minio-data/
-clickhouse-data/
 postgres-data/
 *.local
 

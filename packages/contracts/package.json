@@ -1,0 +1,26 @@
+{
+  "name": "@papertrail/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "PaperTrail 공용 API 계약 (표준 통신 프로토콜 타입 + 도메인 Zod 스키마)",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsgo -p tsconfig.json",
+    "typecheck": "tsgo --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
+  }
+}
