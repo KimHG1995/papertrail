@@ -1,0 +1,44 @@
+# === OS / Editor ===
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# === Node / TypeScript (Next.js Admin, NestJS API) ===
+node_modules/
+dist/
+build/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+.pnpm-store/
+npm-debug.log*
+pnpm-debug.log*
+yarn-error.log*
+
+# === Env / Secrets ===
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# === Rust (papermake integration / render worker) ===
+target/
+**/*.rs.bk
+Cargo.lock
+
+# === Infra / Local data ===
+tmp/
+.tmp/
+minio-data/
+clickhouse-data/
+postgres-data/
+*.local
+
+# === Artifacts ===
+*.pdf
+!docs/**/*.pdf
