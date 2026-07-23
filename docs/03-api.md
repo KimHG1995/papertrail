@@ -434,7 +434,7 @@ X-Webhook-Timestamp: 1784772000
 | `POST /v1/admin/webhooks`         | Webhook 엔드포인트 등록(시크릿 발급)     |
 | `GET /v1/admin/dlq`               | DLQ 항목 조회 (목록, `meta.pagination`)  |
 | `POST /v1/admin/dlq/{id}/requeue` | 재처리                                   |
-| `GET /v1/admin/stats`             | PostgreSQL 기반 통계(성공률/처리량/오류) |
+| `GET /v1/admin/stats`             | ClickHouse 기반 통계(성공률/처리량/오류) |
 | `GET /v1/health`                  | 헬스체크 (`@SkipResponseTransform()`)    |
 
 ## 3.11 상태 전이 (문서)

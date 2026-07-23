@@ -31,10 +31,14 @@ target/
 **/*.rs.bk
 Cargo.lock
 
+# === Third-party clones (papermake render engine, built via docker compose) ===
+third_party/
+
 # === Infra / Local data ===
 tmp/
 .tmp/
 minio-data/
+clickhouse-data/
 postgres-data/
 *.local
 

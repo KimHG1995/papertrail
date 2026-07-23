@@ -30,7 +30,7 @@ PDF/A
 
 - [x] 제품/기술 명세서 정의
 - [x] 리포지토리, 문서 구조
-- [ ] docker-compose 로컬 인프라 초안(Papermake, MinIO, Postgres, Redis)
+- [ ] docker-compose 로컬 인프라 초안(Papermake, MinIO, ClickHouse, Postgres, Redis)
 
 ### M1 — MVP 코어 (4대 흐름)
 
@@ -51,7 +51,7 @@ PDF/A
 - [ ] PDF/A-2b / a-3b 옵션
 - [ ] 템플릿 승인 워크플로(DRAFT→...→DEPRECATED) + RBAC
 - [ ] 버전 diff, 미리보기
-- [ ] 렌더 통계 집계(PostgreSQL) + 통계 API
+- [ ] ClickHouse 이벤트 적재 + 통계 API
 
 ### M3 — 운영/관측/보안 강화
 

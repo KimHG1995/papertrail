@@ -1,8 +1,9 @@
 # 04. 데이터 모델
 
-두 저장소가 각자의 강점에 맞는 데이터를 담는다. 아래 스키마는 참조 설계이며 구현 시 마이그레이션으로 확정한다.
+세 저장소가 각자의 강점에 맞는 데이터를 담는다. 아래 스키마는 참조 설계이며 구현 시 마이그레이션으로 확정한다.
 
-- **PostgreSQL** — 트랜잭션/상태 + 증적 + 통계 집계
+- **PostgreSQL** — 트랜잭션/상태 (강한 일관성이 필요한 것)
+- **ClickHouse** — append-only 이벤트/분석
 - **S3 / MinIO** — 객체(바이너리)
 
 ---
@@ -50,7 +51,7 @@ CREATE TABLE api_key (
 CREATE INDEX ON api_key (tenant_id);
 ```
 
-### template / template_version / template_tag
+### template / template_version
 
 ```sql
 CREATE TABLE template (
@@ -108,20 +109,16 @@ CREATE TABLE document (
 
   requested_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
   completed_at   TIMESTAMPTZ,
-  duration_ms    INT
+  duration_ms    INT,
+
+  UNIQUE (tenant_id, idempotency_key)  -- 멱등성
 );
-
--- 멱등성: idempotency_key가 있는 행만 (tenant, key) 유일
-CREATE UNIQUE INDEX document_idem_uniq
-  ON document (tenant_id, idempotency_key)
-  WHERE idempotency_key IS NOT NULL;
-
 CREATE INDEX ON document (tenant_id, status);
 CREATE INDEX ON document (batch_id);
 CREATE INDEX ON document (requested_at);
 ```
 
-> partial unique index가 멱등성의 DB 레벨 보증이다. `idempotency_key`가 NULL인 행은 유일성 제약에서 제외된다.
+> `UNIQUE (tenant_id, idempotency_key)`가 멱등성의 DB 레벨 보증이다. `idempotency_key`가 NULL인 행은 유니크 제약에서 제외되도록 partial unique index로 구성한다.
 
 ### batch
 
@@ -168,33 +165,6 @@ CREATE TABLE webhook_delivery (
 );
 ```
 
-### render_event (append-only, 통계용)
-
-`document`은 상태가 갱신되는 가변 행이므로, 통계/시계열 집계는 렌더 종료 시점에 1건씩 쌓는 append-only 테이블로 분리한다. 개인정보 원문은 넣지 않는다(해시/코드/시간만).
-
-```sql
-CREATE TABLE render_event (
-  id            BIGSERIAL PRIMARY KEY,
-  event_time    TIMESTAMPTZ NOT NULL DEFAULT now(),
-  tenant_id     TEXT NOT NULL,
-  document_id   TEXT NOT NULL,
-  batch_id      TEXT,
-  template_name TEXT NOT NULL,
-  template_hash TEXT NOT NULL,
-  input_hash    TEXT NOT NULL,
-  output_hash   TEXT,
-  pdf_standard  TEXT NOT NULL,
-  status        TEXT NOT NULL,        -- SUCCEEDED | FAILED
-  error_code    TEXT,
-  attempt       SMALLINT NOT NULL DEFAULT 1,
-  duration_ms   INT
-);
-CREATE INDEX ON render_event (tenant_id, template_name, event_time);
-CREATE INDEX ON render_event (event_time);
-```
-
-> 대량 트래픽으로 집계 부하가 커지면, 월 단위 파티셔닝(`PARTITION BY RANGE (event_time)`)이나 요약 집계 테이블(materialized view)을 추가한다. 그 이상으로 분석 요구가 커질 때 비로소 전용 OLAP 저장소 도입을 재검토한다.
-
 ### billing (스키마만 선행)
 
 ```sql
@@ -209,41 +179,41 @@ CREATE TABLE usage_counter (
 
 ---
 
-## 4.2 통계/집계 (PostgreSQL 기반)
+## 4.2 ClickHouse 스키마 (분석/이벤트)
 
-전용 분석 저장소 없이 `render_event`(또는 `document`) 테이블에서 직접 집계한다.
+append-only. 개인정보 원문은 넣지 않는다(해시/코드/시간만).
+
+### render_event
 
 ```sql
--- 템플릿별 p95 처리시간
-SELECT template_name,
-       percentile_cont(0.95) WITHIN GROUP (ORDER BY duration_ms) AS p95_ms
-FROM render_event
-WHERE tenant_id = $1 AND event_time >= now() - interval '7 days'
-GROUP BY template_name;
-
--- 템플릿별 성공률
-SELECT template_name,
-       count(*) FILTER (WHERE status = 'SUCCEEDED')::float / count(*) AS success_rate
-FROM render_event
-WHERE tenant_id = $1
-GROUP BY template_name;
-
--- 시간대별 처리량
-SELECT date_trunc('hour', event_time) AS bucket, count(*)
-FROM render_event
-WHERE tenant_id = $1
-GROUP BY bucket
-ORDER BY bucket;
-
--- 오류 코드 집계
-SELECT error_code, count(*)
-FROM render_event
-WHERE tenant_id = $1 AND status = 'FAILED'
-GROUP BY error_code
-ORDER BY count DESC;
+CREATE TABLE render_event (
+  event_time    DateTime64(3),
+  tenant_id     LowCardinality(String),
+  document_id   String,
+  batch_id      String,
+  template_name LowCardinality(String),
+  template_hash String,
+  input_hash    String,
+  output_hash   String,
+  pdf_standard  LowCardinality(String),
+  status        LowCardinality(String),  -- SUCCEEDED | FAILED
+  error_code    LowCardinality(String),
+  attempt       UInt8,
+  duration_ms   UInt32
+)
+ENGINE = MergeTree
+PARTITION BY toYYYYMM(event_time)
+ORDER BY (tenant_id, template_name, event_time);
 ```
 
-이 쿼리들이 `GET /v1/admin/stats`([03. API](03-api.md))의 근거가 된다.
+### 대표 분석 쿼리 예시
+
+- 처리시간 통계: `quantile(0.95)(duration_ms)` by template
+- 템플릿별 성공률: `countIf(status='SUCCEEDED') / count()`
+- 시간대별 처리량: `count()` by `toStartOfHour(event_time)`
+- 오류 코드 집계: `count()` by `error_code`
+
+집계 가속을 위해 필요 시 `AggregatingMergeTree` 기반 materialized view를 추가한다.
 
 ---
 
