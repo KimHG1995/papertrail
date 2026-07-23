@@ -1,6 +1,10 @@
 # pnpm 워크스페이스 — 모노레포 구성
-# apps: 배포 단위 (admin=Next.js, api=NestJS, worker=렌더 워커)
-# packages: 공용 라이브러리 (config, types, sdk 등)
+# apps: 배포 단위 (gateway=NestJS, worker=렌더 워커, admin=Next.js)
+# packages: 공용 라이브러리 (contracts 등)
 packages:
   - 'apps/*'
   - 'packages/*'
+
+# 네이티브 바이너리를 설치 시 빌드하도록 허용할 의존성 (보안 기본값은 차단)
+onlyBuiltDependencies:
+  - '@swc/core'
