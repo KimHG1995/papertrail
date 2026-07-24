@@ -18,6 +18,8 @@ export default tseslint.config(
       '**/.next/**',
       '**/out/**',
       '**/coverage/**',
+      // 빌드 tsconfig(src 한정)에 포함되지 않는 도구 설정 파일 — type-aware 린트 대상에서 제외
+      '**/drizzle.config.ts',
     ],
   },
 

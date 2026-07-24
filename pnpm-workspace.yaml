@@ -8,3 +8,4 @@ packages:
 # 네이티브 바이너리를 설치 시 빌드하도록 허용할 의존성 (보안 기본값은 차단)
 onlyBuiltDependencies:
   - '@swc/core'
+  - 'esbuild'

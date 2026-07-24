@@ -8,3 +8,6 @@ coverage
 
 # 자동 생성 파일
 pnpm-lock.yaml
+
+# drizzle-kit 이 관리하는 마이그레이션/스냅샷 (직접 편집/포맷 금지)
+packages/db/migrations

@@ -8,6 +8,7 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
   app.use(requestContext);
   app.setGlobalPrefix('v1');
+  app.enableShutdownHooks(); // DatabaseModule 이 종료 시 커넥션 풀을 정리하도록
 
   const port = Number(process.env.PORT ?? 3000);
   await app.listen(port);

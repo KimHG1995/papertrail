@@ -20,12 +20,12 @@ export class DocumentsController {
   create(
     @Body(new ZodValidationPipe(CreateDocumentRequest))
     body: CreateDocumentRequest,
-  ): CreateDocumentResponse {
+  ): Promise<CreateDocumentResponse> {
     return this.documents.enqueue(body);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string): DocumentDetail {
+  findOne(@Param('id') id: string): Promise<DocumentDetail> {
     return this.documents.getDetail(id);
   }
 }

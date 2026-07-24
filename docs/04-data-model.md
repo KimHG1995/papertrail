@@ -6,6 +6,8 @@
 - **ClickHouse** — append-only 이벤트/분석
 - **S3 / MinIO** — 객체(바이너리)
 
+> PostgreSQL 스키마는 `@papertrail/db`(Drizzle ORM, [`packages/db/src/schema.ts`](../packages/db/src/schema.ts))로 구현되어 있고, 마이그레이션은 [`packages/db/migrations`](../packages/db/migrations)에서 관리한다(`pnpm --filter @papertrail/db db:generate`로 생성, `db:migrate`로 적용).
+
 ---
 
 ## 4.1 PostgreSQL 스키마
@@ -93,14 +95,15 @@ CREATE TABLE document (
 
   template_name  TEXT NOT NULL,
   template_tag   TEXT,
-  template_hash  TEXT NOT NULL,        -- 실제 렌더에 쓰인 고정 해시
+  template_hash  TEXT,                 -- 렌더에 쓰인 고정 해시(렌더 시점 확정, 접수 시 NULL 가능)
 
-  input_hash     TEXT NOT NULL,
+  input_hash     TEXT NOT NULL,        -- 접수 시 입력 JSON 정규화 후 즉시 계산
   output_hash    TEXT,
   pdf_standard   TEXT NOT NULL DEFAULT 'pdf-1.7',
 
   input_object_key TEXT,              -- 암호화 입력 원문 S3 키(선택)
   storage_key    TEXT,                -- 결과 PDF S3 키
+  callback_url   TEXT,                -- 단건 요청의 Webhook 콜백 URL(선택)
   masked_preview JSONB,               -- { "name": "홍*동" }
 
   status         TEXT NOT NULL,        -- QUEUED|RENDERING|SUCCEEDED|FAILED
@@ -119,6 +122,8 @@ CREATE INDEX ON document (requested_at);
 ```
 
 > `UNIQUE (tenant_id, idempotency_key)`가 멱등성의 DB 레벨 보증이다. `idempotency_key`가 NULL인 행은 유니크 제약에서 제외되도록 partial unique index로 구성한다.
+>
+> `template_hash`, `output_hash`는 렌더 시점에 확정되므로 접수(QUEUED) 시에는 NULL일 수 있다. `input_hash`만 접수 시점에 입력 JSON을 정규화(§4.4 해시 규칙)해 즉시 계산한다.
 
 ### batch
 

@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import { ResponseTransformInterceptor } from './common/interceptors/response-transform.interceptor.js';
+import { DatabaseModule } from './database/database.module.js';
 import { DocumentsModule } from './documents/documents.module.js';
 import { HealthModule } from './health/health.module.js';
 
@@ -12,7 +14,12 @@ import { HealthModule } from './health/health.module.js';
  * traceId 미들웨어는 라우팅 이전에 동작해야 하므로 main.ts 의 app.use 로 등록한다.
  */
 @Module({
-  imports: [HealthModule, DocumentsModule],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    DatabaseModule,
+    HealthModule,
+    DocumentsModule,
+  ],
   providers: [
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
     { provide: APP_INTERCEPTOR, useClass: ResponseTransformInterceptor },

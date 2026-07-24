@@ -19,11 +19,15 @@ export const CreateDocumentRequest = z.object({
 });
 export type CreateDocumentRequest = z.infer<typeof CreateDocumentRequest>;
 
-/** POST /v1/documents 응답 data (202 Accepted). */
+/**
+ * POST /v1/documents 응답 data (202 Accepted).
+ * templateHash 는 고정 참조(name@sha256:...)면 즉시 확정, 가변 태그(name:tag)면
+ * 렌더 시점에 확정되므로 접수 응답에서는 null 일 수 있다.
+ */
 export const CreateDocumentResponse = z.object({
   documentId: z.string(),
   status: DocumentStatus,
-  templateVersion: HashRef,
+  templateHash: HashRef.nullable(),
   statusUrl: z.string(),
 });
 export type CreateDocumentResponse = z.infer<typeof CreateDocumentResponse>;
@@ -35,7 +39,7 @@ export const DocumentDetail = z.object({
   status: DocumentStatus,
   templateName: z.string(),
   templateTag: z.string().nullable(),
-  templateHash: HashRef,
+  templateHash: HashRef.nullable(),
   inputHash: HashRef,
   outputHash: HashRef.nullable(),
   pdfStandard: PdfStandard,
