@@ -47,7 +47,7 @@ PDF/A
 ### M2 — 차별화
 
 - [ ] CSV 대량(batch) 생성 + 진행률 + 결과 리포트
-- [ ] Webhook 서명 발송 + 재시도
+- [x] Webhook 서명 발송 + 재시도(HMAC-SHA256, 엔드포인트 등록, delivery 추적)
 - [ ] PDF/A-2b / a-3b 옵션
 - [ ] 템플릿 승인 워크플로(DRAFT→...→DEPRECATED) + RBAC
 - [ ] 버전 diff, 미리보기

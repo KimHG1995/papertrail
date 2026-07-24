@@ -11,6 +11,7 @@ import { DocumentsModule } from './documents/documents.module.js';
 import { HealthModule } from './health/health.module.js';
 import { StorageModule } from './storage/storage.module.js';
 import { TemplatesModule } from './templates/templates.module.js';
+import { WebhooksModule } from './webhooks/webhooks.module.js';
 
 /**
  * 게이트웨이 루트 모듈.
@@ -32,6 +33,7 @@ import { TemplatesModule } from './templates/templates.module.js';
     HealthModule,
     TemplatesModule,
     DocumentsModule,
+    WebhooksModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: AuthGuard },

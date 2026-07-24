@@ -36,6 +36,13 @@
       "when": 1784868981637,
       "tag": "0004_dev_key_template_scopes",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1784871423828,
+      "tag": "0005_dev_key_webhook_scopes",
+      "breakpoints": true
     }
   ]
 }

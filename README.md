@@ -166,7 +166,7 @@ curl -X POST http://localhost:3000/v1/documents \
 
 ## 상태
 
-🟢 **스캐폴딩 (M1 진행 중)** — 공용 계약 패키지(`@papertrail/contracts`), NestJS 게이트웨이(표준 통신 프로토콜 + API Key 인증/테넌트 격리 + 템플릿 등록/JSON Schema 검증), 영속성 계층(`@papertrail/db`, Drizzle ORM), 비동기 렌더 파이프라인(BullMQ 큐 + `@papertrail/worker` 렌더 워커 + `@papertrail/papermake-client`), 오브젝트 스토리지(`@papertrail/storage`, S3/MinIO)까지 구성했습니다. `Bearer` 인증 → 템플릿 등록(publish) → `POST /v1/documents`(입력 JSON Schema 검증) → PostgreSQL 증적 저장(멱등성) → 큐 적재 → 워커 렌더(재시도/DLQ) → 결과 PDF S3 저장 → `GET /v1/documents/{id}/download` Signed URL 흐름이 로컬에서 동작합니다. 구현 마일스톤은 [06. 로드맵](docs/06-roadmap.md) 참조.
+🟢 **M1 코어 완료, M2 진행 중** — 공용 계약 패키지(`@papertrail/contracts`), NestJS 게이트웨이(표준 통신 프로토콜 + API Key 인증/테넌트 격리 + 템플릿 등록/JSON Schema 검증 + Webhook 등록), 영속성 계층(`@papertrail/db`, Drizzle ORM), 비동기 렌더 파이프라인(BullMQ 큐 + `@papertrail/worker` 렌더 워커 + 테넌트별 동시성 제한 + `@papertrail/papermake-client`), 오브젝트 스토리지(`@papertrail/storage`, S3/MinIO), HMAC 서명 Webhook 발송(재시도/추적)까지 구성했습니다. `Bearer` 인증 → 템플릿 등록(publish) → `POST /v1/documents`(입력 JSON Schema 검증) → PostgreSQL 증적 저장(멱등성) → 큐 적재 → 워커 렌더(재시도/DLQ) → 결과 PDF S3 저장 → `GET /v1/documents/{id}/download` Signed URL → 완료 시 Webhook 발송 흐름이 로컬에서 동작합니다. 구현 마일스톤은 [06. 로드맵](docs/06-roadmap.md) 참조.
 
 ## 라이선스
 

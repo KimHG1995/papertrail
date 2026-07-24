@@ -196,7 +196,9 @@ export const webhookEndpoint = pgTable(
       .notNull()
       .references(() => tenant.id),
     url: text('url').notNull(),
-    secretHash: text('secret_hash').notNull(),
+    // HMAC 서명용 시크릿. 서명하려면 원문이 필요하므로 해시가 아닌 시크릿을 보관한다(M3 에서 암호화).
+    // 컬럼명은 초기 스키마(secret_hash)를 유지하되 필드로는 secret 으로 노출한다.
+    secret: text('secret_hash').notNull(),
     events: text('events').array().$type<WebhookEventType[]>().notNull(),
     active: boolean('active').notNull().default(true),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

@@ -9,6 +9,7 @@ import { eq } from 'drizzle-orm';
 import { TenantConcurrencyService } from '../concurrency/tenant-concurrency.service.js';
 import { DRIZZLE } from '../database/database.constants.js';
 import { STORAGE } from '../storage/storage.constants.js';
+import { WebhookDispatcher } from '../webhook/webhook-dispatcher.service.js';
 import { PAPERMAKE_CLIENT } from './papermake.constants.js';
 
 /** 슬롯 리스 유효기간(초과 시 자동 회수). 최장 렌더 시간보다 넉넉히 둔다. */
@@ -32,6 +33,7 @@ export class RenderProcessor extends WorkerHost {
     @Inject(STORAGE) private readonly storage: StorageClient,
     @InjectQueue(RENDER_DLQ) private readonly dlq: Queue<RenderJobData>,
     private readonly concurrency: TenantConcurrencyService,
+    private readonly webhooks: WebhookDispatcher,
   ) {
     super();
   }
@@ -84,6 +86,19 @@ export class RenderProcessor extends WorkerHost {
       this.logger.log(
         `렌더 성공: documentId=${data.documentId}, outputHash=${result.outputHash}, key=${storageKey}`,
       );
+
+      // 완료 통지. 실패해도 렌더 성공을 되돌리지 않도록 예외를 삼킨다(전송은 자체 큐가 재시도).
+      try {
+        await this.webhooks.dispatch({
+          tenantId: data.tenantId,
+          documentId: data.documentId,
+          eventType: 'document.succeeded',
+          outputHash: result.outputHash,
+          storageKey,
+        });
+      } catch (error) {
+        this.logger.error(`webhook 디스패치 실패(무시): documentId=${data.documentId}`, error);
+      }
     } finally {
       await this.concurrency.release(data.tenantId, member);
     }
@@ -121,5 +136,15 @@ export class RenderProcessor extends WorkerHost {
       .where(eq(document.id, job.data.documentId));
     await this.dlq.add(RENDER_JOB, job.data, { jobId: job.data.documentId });
     this.logger.error(`재시도 소진 → DLQ 이동: documentId=${job.data.documentId}`);
+
+    try {
+      await this.webhooks.dispatch({
+        tenantId: job.data.tenantId,
+        documentId: job.data.documentId,
+        eventType: 'document.failed',
+      });
+    } catch (error) {
+      this.logger.error(`webhook 디스패치 실패(무시): documentId=${job.data.documentId}`, error);
+    }
   }
 }

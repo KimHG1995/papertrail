@@ -12,3 +12,4 @@ export * from './domain/webhook.js';
 
 // 내부 큐 계약 (게이트웨이 ↔ 워커)
 export * from './queue/render-job.js';
+export * from './queue/webhook-job.js';

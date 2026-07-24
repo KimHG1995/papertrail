@@ -23,3 +23,26 @@ export const WebhookEvent = z.object({
   occurredAt: z.iso.datetime(),
 });
 export type WebhookEvent = z.infer<typeof WebhookEvent>;
+
+/** POST /v1/webhooks 요청 본문 (엔드포인트 등록). */
+export const CreateWebhookRequest = z.object({
+  url: z.url('올바른 URL 형식이어야 합니다.'),
+  events: z.array(WebhookEventType).min(1, '구독할 이벤트를 하나 이상 지정해야 합니다.'),
+});
+export type CreateWebhookRequest = z.infer<typeof CreateWebhookRequest>;
+
+/** Webhook 엔드포인트 뷰(시크릿 제외). GET /v1/webhooks 목록 원소. */
+export const WebhookEndpointView = z.object({
+  id: z.string(),
+  url: z.url(),
+  events: z.array(WebhookEventType),
+  active: z.boolean(),
+  createdAt: z.iso.datetime(),
+});
+export type WebhookEndpointView = z.infer<typeof WebhookEndpointView>;
+
+/** 엔드포인트 등록 응답. secret 은 이때 한 번만 반환한다(이후 조회 불가). */
+export const WebhookEndpointCreated = WebhookEndpointView.extend({
+  secret: z.string(),
+});
+export type WebhookEndpointCreated = z.infer<typeof WebhookEndpointCreated>;

@@ -5,6 +5,7 @@ import { redisConnection } from './common/redis.js';
 import { DatabaseModule } from './database/database.module.js';
 import { RenderModule } from './render/render.module.js';
 import { StorageModule } from './storage/storage.module.js';
+import { WebhookModule } from './webhook/webhook.module.js';
 
 /**
  * 렌더 워커 루트 모듈. ConfigModule/BullMQ(Redis)/DatabaseModule 를 구성하고
@@ -21,6 +22,7 @@ import { StorageModule } from './storage/storage.module.js';
     }),
     DatabaseModule,
     StorageModule,
+    WebhookModule,
     RenderModule,
   ],
 })
