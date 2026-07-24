@@ -34,7 +34,7 @@ PDF/A
 
 ### M1 — MVP 코어 (4대 흐름)
 
-- [~] NestJS 게이트웨이 스캐폴딩(표준 프로토콜 완료, 인증/테넌트 미들웨어 예정)
+- [x] NestJS 게이트웨이 스캐폴딩 + API Key 인증/테넌트 격리(전역 AuthGuard, 스코프)
 - [x] Papermake 연동 클라이언트(render/download 래핑, http + 로컬 fake 드라이버)
 - [ ] 템플릿 등록 + JSON Schema 등록 + 태그 관리
 - [x] `POST /v1/documents` 단건 + 멱등성

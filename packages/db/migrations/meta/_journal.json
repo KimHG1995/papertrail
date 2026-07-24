@@ -15,6 +15,13 @@
       "when": 1784850800742,
       "tag": "0001_dev_tenant_seed",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784867542291,
+      "tag": "0002_dev_api_key",
+      "breakpoints": true
     }
   ]
 }

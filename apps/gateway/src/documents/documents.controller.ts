@@ -5,6 +5,8 @@ import {
   type DocumentDetail,
 } from '@papertrail/contracts';
 import type { Request, Response } from 'express';
+import { CurrentTenant } from '../auth/current-tenant.decorator.js';
+import { RequiredScopes } from '../auth/scopes.decorator.js';
 import {
   DEFAULT_DOWNLOAD_TTL_SECONDS,
   MAX_DOWNLOAD_TTL_SECONDS,
@@ -34,16 +36,19 @@ export class DocumentsController {
 
   @Post()
   @HttpCode(202)
+  @RequiredScopes('documents:write')
   create(
+    @CurrentTenant() tenantId: string,
     @Body(new ZodValidationPipe(CreateDocumentRequest))
     body: CreateDocumentRequest,
   ): Promise<CreateDocumentResponse> {
-    return this.documents.enqueue(body);
+    return this.documents.enqueue(tenantId, body);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string): Promise<DocumentDetail> {
-    return this.documents.getDetail(id);
+  @RequiredScopes('documents:read')
+  findOne(@CurrentTenant() tenantId: string, @Param('id') id: string): Promise<DocumentDetail> {
+    return this.documents.getDetail(tenantId, id);
   }
 
   /**
@@ -51,15 +56,17 @@ export class DocumentsController {
    * {url, expiresAt, outputHash} 정형화 응답. `?ttl` 로 URL 유효기간(초)을 조정한다.
    */
   @Get(':id/download')
+  @RequiredScopes('documents:read')
   @SkipResponseTransform()
   async download(
+    @CurrentTenant() tenantId: string,
     @Param('id') id: string,
     @Query('ttl') ttl: string | undefined,
     @Query('format') format: string | undefined,
     @Req() req: Request,
     @Res() res: Response,
   ): Promise<void> {
-    const info = await this.documents.getDownload(id, clampTtl(ttl));
+    const info = await this.documents.getDownload(tenantId, id, clampTtl(ttl));
     if (format === 'json') {
       const path = req.originalUrl.split('?')[0] ?? req.originalUrl;
       res.status(200).json(successEnvelope(info, path, req.traceId ?? ''));

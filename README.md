@@ -137,6 +137,15 @@ pnpm --filter @papertrail/gateway dev   # API 게이트웨이 (http://localhost:
 pnpm --filter @papertrail/worker dev    # 렌더 워커 (렌더 큐 소비 → Papermake 호출 → 증적 갱신)
 ```
 
+문서 API 는 API Key 인증이 필요합니다(`Authorization: Bearer <key>`). 마이그레이션이 로컬 개발용 키(`pt_dev_papertrail_local_key`, `tenant_dev` 소속)를 시드합니다.
+
+```bash
+curl -X POST http://localhost:3000/v1/documents \
+  -H 'Authorization: Bearer pt_dev_papertrail_local_key' \
+  -H 'Content-Type: application/json' \
+  -d '{"template":"training-notice:2026-v2","document":{"title":"교육 통지"}}'
+```
+
 | 서비스     | 호스트 포트                  | 용도                           | 기본 자격증명              |
 | ---------- | ---------------------------- | ------------------------------ | -------------------------- |
 | PostgreSQL | 5432                         | 상태, 증적, 멱등성             | `papertrail`/`papertrail`  |
@@ -157,7 +166,7 @@ pnpm --filter @papertrail/worker dev    # 렌더 워커 (렌더 큐 소비 → P
 
 ## 상태
 
-🟢 **스캐폴딩 (M1 진행 중)** — 공용 계약 패키지(`@papertrail/contracts`), NestJS 게이트웨이(표준 통신 프로토콜), 영속성 계층(`@papertrail/db`, Drizzle ORM), 비동기 렌더 파이프라인(BullMQ 큐 + `@papertrail/worker` 렌더 워커 + `@papertrail/papermake-client`), 오브젝트 스토리지(`@papertrail/storage`, S3/MinIO)까지 구성했습니다. `POST /v1/documents` → PostgreSQL 증적 저장(멱등성) → 큐 적재 → 워커 렌더(재시도/DLQ) → 결과 PDF S3 저장 → `GET /v1/documents/{id}/download` Signed URL 흐름이 로컬에서 동작합니다. 구현 마일스톤은 [06. 로드맵](docs/06-roadmap.md) 참조.
+🟢 **스캐폴딩 (M1 진행 중)** — 공용 계약 패키지(`@papertrail/contracts`), NestJS 게이트웨이(표준 통신 프로토콜 + API Key 인증/테넌트 격리), 영속성 계층(`@papertrail/db`, Drizzle ORM), 비동기 렌더 파이프라인(BullMQ 큐 + `@papertrail/worker` 렌더 워커 + `@papertrail/papermake-client`), 오브젝트 스토리지(`@papertrail/storage`, S3/MinIO)까지 구성했습니다. `Bearer` 인증 → `POST /v1/documents` → PostgreSQL 증적 저장(멱등성) → 큐 적재 → 워커 렌더(재시도/DLQ) → 결과 PDF S3 저장 → `GET /v1/documents/{id}/download` Signed URL 흐름이 로컬에서 동작합니다. 구현 마일스톤은 [06. 로드맵](docs/06-roadmap.md) 참조.
 
 ## 라이선스
 

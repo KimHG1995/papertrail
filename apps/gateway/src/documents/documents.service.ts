@@ -12,7 +12,7 @@ import {
 import { type Database, type DocumentRow, document, newId } from '@papertrail/db';
 import type { StorageClient } from '@papertrail/storage';
 import { Queue } from 'bullmq';
-import { DEFAULT_DOWNLOAD_TTL_SECONDS, DEFAULT_TENANT_ID } from '../common/constants.js';
+import { DEFAULT_DOWNLOAD_TTL_SECONDS } from '../common/constants.js';
 import { ProblemException } from '../common/exceptions/problem.exception.js';
 import { hashJson } from '../common/hash/canonical-hash.js';
 import { DRIZZLE } from '../database/database.constants.js';
@@ -67,10 +67,7 @@ export class DocumentsService {
    * 문서 생성 요청을 접수하고 증적 레코드를 QUEUED 로 저장한다.
    * 멱등성 키가 있으면 같은 입력은 기존 접수를 그대로 반환하고, 다른 입력은 409.
    */
-  async enqueue(
-    request: CreateDocumentRequest,
-    tenantId: string = DEFAULT_TENANT_ID,
-  ): Promise<CreateDocumentResponse> {
+  async enqueue(tenantId: string, request: CreateDocumentRequest): Promise<CreateDocumentResponse> {
     const ref = parseTemplateRef(request.template);
     const inputHash = hashJson({
       recipient: request.recipient ?? null,
@@ -143,15 +140,15 @@ export class DocumentsService {
     return this.toCreateResponse(row);
   }
 
-  /** 문서 증적 상세를 조회한다. 결과가 있으면 downloadUrl 을 Signed URL 로 채운다. */
-  async getDetail(id: string): Promise<DocumentDetail> {
-    const row = await this.findById(id);
+  /** 문서 증적 상세를 조회한다(테넌트 격리). 결과가 있으면 downloadUrl 을 Signed URL 로 채운다. */
+  async getDetail(tenantId: string, id: string): Promise<DocumentDetail> {
+    const row = await this.findByIdForTenant(tenantId, id);
     return this.toDetail(row);
   }
 
-  /** 다운로드용 Signed URL 정보를 발급한다(결과 PDF 가 있어야 한다). */
-  async getDownload(id: string, ttlSeconds: number): Promise<DownloadInfo> {
-    const row = await this.findById(id);
+  /** 다운로드용 Signed URL 정보를 발급한다(테넌트 격리, 결과 PDF 가 있어야 한다). */
+  async getDownload(tenantId: string, id: string, ttlSeconds: number): Promise<DownloadInfo> {
+    const row = await this.findByIdForTenant(tenantId, id);
     if (row.status !== 'SUCCEEDED' || !row.storageKey || !row.outputHash) {
       throw new NotFoundException(`다운로드할 결과 PDF 가 아직 없습니다: ${id}`);
     }
@@ -159,9 +156,10 @@ export class DocumentsService {
     return { url, expiresAt: expiresAt.toISOString(), outputHash: row.outputHash };
   }
 
-  private async findById(id: string): Promise<DocumentRow> {
+  /** 테넌트 소유의 문서만 조회한다. 다른 테넌트의 문서는 존재 노출을 피해 404 로 처리한다. */
+  private async findByIdForTenant(tenantId: string, id: string): Promise<DocumentRow> {
     const row = await this.db.query.document.findFirst({
-      where: (fields, { eq }) => eq(fields.id, id),
+      where: (fields, { and, eq }) => and(eq(fields.id, id), eq(fields.tenantId, tenantId)),
     });
     if (!row) {
       throw new NotFoundException(`문서를 찾을 수 없습니다: ${id}`);
