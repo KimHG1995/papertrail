@@ -52,8 +52,9 @@ export class RenderProcessor extends WorkerHost {
     await this.db
       .update(document)
       .set({
+        // templateHash 는 접수 시 레지스트리에서 해석한 값을 그대로 유지한다(렌더 결과보다 권위 있음).
         status: 'SUCCEEDED',
-        templateHash: result.templateHash,
+        templateHash: data.templateHash,
         outputHash: result.outputHash,
         durationMs: result.durationMs,
         storageKey,

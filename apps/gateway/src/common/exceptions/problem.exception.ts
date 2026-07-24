@@ -18,3 +18,13 @@ export class ValidationException extends ProblemException {
     super('VALIDATION_FAILED', detail, errors);
   }
 }
+
+/** 렌더 데이터가 템플릿 JSON Schema 를 위반. 422 SCHEMA_VALIDATION_FAILED + errors[]. */
+export class SchemaValidationException extends ProblemException {
+  constructor(
+    errors: FieldError[],
+    detail = '렌더 데이터가 템플릿 JSON Schema 를 통과하지 못했습니다.',
+  ) {
+    super('SCHEMA_VALIDATION_FAILED', detail, errors);
+  }
+}

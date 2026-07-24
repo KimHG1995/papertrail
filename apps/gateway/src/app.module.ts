@@ -10,6 +10,7 @@ import { DatabaseModule } from './database/database.module.js';
 import { DocumentsModule } from './documents/documents.module.js';
 import { HealthModule } from './health/health.module.js';
 import { StorageModule } from './storage/storage.module.js';
+import { TemplatesModule } from './templates/templates.module.js';
 
 /**
  * 게이트웨이 루트 모듈.
@@ -29,6 +30,7 @@ import { StorageModule } from './storage/storage.module.js';
     DatabaseModule,
     StorageModule,
     HealthModule,
+    TemplatesModule,
     DocumentsModule,
   ],
   providers: [

@@ -68,7 +68,8 @@ CREATE TABLE template_version (
   id             TEXT PRIMARY KEY,
   template_id    TEXT NOT NULL REFERENCES template(id),
   manifest_hash  TEXT NOT NULL,       -- sha256:... (Papermake 매니페스트)
-  schema_hash    TEXT NOT NULL,       -- JSON Schema 해시
+  schema_hash    TEXT,               -- JSON Schema 해시(스키마 없으면 NULL)
+  schema         JSONB,              -- 입력 검증용 JSON Schema 본문(스키마 없으면 NULL)
   state          TEXT NOT NULL,       -- DRAFT|REVIEWING|APPROVED|PUBLISHED|DEPRECATED
   created_by     TEXT,
   created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),

@@ -35,9 +35,9 @@ PDF/A
 ### M1 — MVP 코어 (4대 흐름)
 
 - [x] NestJS 게이트웨이 스캐폴딩 + API Key 인증/테넌트 격리(전역 AuthGuard, 스코프)
-- [x] Papermake 연동 클라이언트(render/download 래핑, http + 로컬 fake 드라이버)
-- [ ] 템플릿 등록 + JSON Schema 등록 + 태그 관리
-- [x] `POST /v1/documents` 단건 + 멱등성
+- [x] Papermake 연동 클라이언트(publish/render/download 래핑, http + 로컬 fake 드라이버)
+- [x] 템플릿 등록(publish) + JSON Schema 등록/입력 검증 + 태그 관리
+- [x] `POST /v1/documents` 단건 + 멱등성 + 입력 스키마 검증
 - [x] 큐(BullMQ 로컬, SQS 추상화 가능) + Render Worker
 - [~] 재시도/DLQ 완료, 테넌트 동시성 제한 예정(현재 전역 concurrency)
 - [x] 증적 기록(template/input/output hash) + 문서 상세 API

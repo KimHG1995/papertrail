@@ -1,5 +1,11 @@
 import { createHash, randomUUID } from 'node:crypto';
-import type { PapermakeClient, RenderInput, RenderOutput } from './types.js';
+import type {
+  PapermakeClient,
+  PublishInput,
+  PublishOutput,
+  RenderInput,
+  RenderOutput,
+} from './types.js';
 
 /**
  * 로컬 개발용 가짜 렌더러. Papermake(Rust) 를 빌드하지 않고도 파이프라인 전체를
@@ -7,6 +13,12 @@ import type { PapermakeClient, RenderInput, RenderOutput } from './types.js';
  * template 참조에 'fail' 이 포함되면 실패를 시뮬레이션한다(재시도/DLQ 테스트용).
  */
 export class FakePapermakeClient implements PapermakeClient {
+  publish(input: PublishInput): Promise<PublishOutput> {
+    // 이름 + 소스로 결정적 매니페스트 해시를 만든다(콘텐츠 주소 모사).
+    const manifestHash = sha256Hex(`${input.name}\n${input.source}`);
+    return Promise.resolve({ manifestHash: `sha256:${manifestHash}` });
+  }
+
   render(input: RenderInput): Promise<RenderOutput> {
     if (input.template.includes('fail')) {
       return Promise.reject(new Error(`가짜 렌더 실패(시뮬레이션): ${input.template}`));

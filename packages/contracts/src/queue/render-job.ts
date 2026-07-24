@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { JsonObject, PdfStandard } from '../domain/common.js';
+import { HashRef, JsonObject, PdfStandard } from '../domain/common.js';
 
 /** 렌더 작업 큐 이름(게이트웨이 프로듀서 → 워커 컨슈머). */
 export const RENDER_QUEUE = 'render';
@@ -19,6 +19,7 @@ export const RenderJobData = z.object({
   documentId: z.string(),
   tenantId: z.string(),
   template: z.string(),
+  templateHash: HashRef,
   pdfStandard: PdfStandard,
   data: JsonObject,
   recipient: JsonObject.nullable(),

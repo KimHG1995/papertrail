@@ -1,9 +1,21 @@
 import { z } from 'zod';
-import { HashRef } from './common.js';
+import { HashRef, JsonObject } from './common.js';
 
 /** 템플릿 승인 워크플로 상태. docs/03-api.md §3.4 */
 export const TemplateState = z.enum(['DRAFT', 'REVIEWING', 'APPROVED', 'PUBLISHED', 'DEPRECATED']);
 export type TemplateState = z.infer<typeof TemplateState>;
+
+/**
+ * POST /v1/templates/{name}/publish 요청 본문.
+ * 명세(docs/03)는 multipart 이나 M1 은 JSON 으로 단순화한다(asset 파일은 후속).
+ * schema 는 렌더 입력을 검증할 JSON Schema(선택, 있으면 문서 생성 시 검증).
+ */
+export const RegisterTemplateRequest = z.object({
+  source: z.string().min(1, 'Typst 소스는 필수입니다.'),
+  schema: JsonObject.optional(),
+  author: z.string().optional(),
+});
+export type RegisterTemplateRequest = z.infer<typeof RegisterTemplateRequest>;
 
 /** 템플릿 이름 (URL-safe slug). */
 export const TemplateName = z

@@ -93,7 +93,9 @@ export const templateVersion = pgTable(
       .notNull()
       .references(() => template.id),
     manifestHash: text('manifest_hash').notNull(),
-    schemaHash: text('schema_hash').notNull(),
+    // 입력 검증용 JSON Schema 와 그 해시. 스키마가 없으면 둘 다 NULL.
+    schemaHash: text('schema_hash'),
+    schema: jsonb('schema').$type<Record<string, unknown>>(),
     state: text('state').$type<TemplateState>().notNull(),
     createdBy: text('created_by'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

@@ -59,9 +59,15 @@ importers:
       '@papertrail/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@papertrail/papermake-client':
+        specifier: workspace:*
+        version: link:../../packages/papermake-client
       '@papertrail/storage':
         specifier: workspace:*
         version: link:../../packages/storage
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
       bullmq:
         specifier: ^5.80.10
         version: 5.80.10

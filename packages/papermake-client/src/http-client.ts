@@ -1,5 +1,11 @@
 import type { PdfStandard } from '@papertrail/contracts';
-import type { PapermakeClient, RenderInput, RenderOutput } from './types.js';
+import type {
+  PapermakeClient,
+  PublishInput,
+  PublishOutput,
+  RenderInput,
+  RenderOutput,
+} from './types.js';
 
 /** 우리 PdfStandard → Papermake 가 기대하는 값(1.7 은 접두사 없음)으로 매핑. */
 const PDF_STANDARD_MAP: Record<PdfStandard, string> = {
@@ -32,6 +38,33 @@ export class HttpPapermakeClient implements PapermakeClient {
   constructor(options: HttpPapermakeClientOptions) {
     this.baseUrl = options.baseUrl.replace(/\/+$/, '');
     this.fetchImpl = options.fetchImpl ?? fetch;
+  }
+
+  async publish(input: PublishInput): Promise<PublishOutput> {
+    const res = await this.fetchImpl(
+      `${this.baseUrl}/api/templates/${input.name}/publish-simple?tag=${encodeURIComponent(input.tag)}`,
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          main_typ: input.source,
+          metadata: { name: input.name, author: input.author ?? '' },
+          ...(input.schema ? { schema: input.schema } : {}),
+        }),
+      },
+    );
+    if (!res.ok) {
+      throw new Error(`Papermake publish 실패: ${res.status} ${await safeText(res)}`);
+    }
+    const body = (await res.json()) as {
+      data?: { hash?: unknown; manifest_hash?: unknown; pdf_hash?: unknown };
+    };
+    const hash = body.data?.hash ?? body.data?.manifest_hash ?? body.data?.pdf_hash;
+    const manifestHash = asHashRef(typeof hash === 'string' ? hash : null);
+    if (!manifestHash) {
+      throw new Error('Papermake publish 응답에서 매니페스트 해시를 찾지 못했습니다.');
+    }
+    return { manifestHash };
   }
 
   async render(input: RenderInput): Promise<RenderOutput> {

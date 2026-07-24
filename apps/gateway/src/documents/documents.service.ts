@@ -17,30 +17,10 @@ import { ProblemException } from '../common/exceptions/problem.exception.js';
 import { hashJson } from '../common/hash/canonical-hash.js';
 import { DRIZZLE } from '../database/database.constants.js';
 import { STORAGE } from '../storage/storage.constants.js';
+import { TemplatesService } from '../templates/templates.service.js';
 
-interface ParsedTemplateRef {
-  name: string;
-  tag: string | null;
-  hash: string | null;
-}
-
-/**
- * template 참조를 name / tag / 고정 해시로 분해한다.
- * - name@sha256:...  → 고정 참조(hash 확정)
- * - name:tag         → 가변 태그(hash 는 렌더 시점 확정)
- * - name             → 태그 없음
- */
-function parseTemplateRef(ref: string): ParsedTemplateRef {
-  const pinIdx = ref.indexOf('@sha256:');
-  if (pinIdx !== -1) {
-    return { name: ref.slice(0, pinIdx), tag: null, hash: ref.slice(pinIdx + 1) };
-  }
-  const tagIdx = ref.indexOf(':');
-  if (tagIdx !== -1) {
-    return { name: ref.slice(0, tagIdx), tag: ref.slice(tagIdx + 1), hash: null };
-  }
-  return { name: ref, tag: null, hash: null };
-}
+/** TemplatesService.resolveForRender 의 반환 타입(템플릿 해석 결과). */
+type ResolvedTemplate = Awaited<ReturnType<TemplatesService['resolveForRender']>>;
 
 /** PostgreSQL unique_violation(멱등성 index 충돌) 여부. */
 function isUniqueViolation(error: unknown): boolean {
@@ -61,14 +41,21 @@ export class DocumentsService {
     @Inject(DRIZZLE) private readonly db: Database,
     @Inject(STORAGE) private readonly storage: StorageClient,
     @InjectQueue(RENDER_QUEUE) private readonly renderQueue: Queue<RenderJobData>,
+    private readonly templates: TemplatesService,
   ) {}
 
   /**
    * 문서 생성 요청을 접수하고 증적 레코드를 QUEUED 로 저장한다.
-   * 멱등성 키가 있으면 같은 입력은 기존 접수를 그대로 반환하고, 다른 입력은 409.
+   * 템플릿을 레지스트리에서 해석하고 입력을 JSON Schema 로 검증한 뒤,
+   * 멱등성 키가 있으면 같은 입력은 기존 접수를 반환하고 다른 입력은 409 로 처리한다.
    */
   async enqueue(tenantId: string, request: CreateDocumentRequest): Promise<CreateDocumentResponse> {
-    const ref = parseTemplateRef(request.template);
+    // 미등록 템플릿은 404, 스키마 위반은 422 로 여기서 실패한다.
+    const resolved = await this.templates.resolveForRender(
+      tenantId,
+      request.template,
+      request.document,
+    );
     const inputHash = hashJson({
       recipient: request.recipient ?? null,
       document: request.document,
@@ -77,7 +64,7 @@ export class DocumentsService {
     if (request.idempotencyKey) {
       const existing = await this.findByIdempotencyKey(tenantId, request.idempotencyKey);
       if (existing) {
-        this.assertSamePayload(existing, ref, inputHash);
+        this.assertSamePayload(existing, resolved, inputHash);
         return this.toCreateResponse(existing);
       }
     }
@@ -90,9 +77,9 @@ export class DocumentsService {
           id: newId('doc'),
           tenantId,
           idempotencyKey: request.idempotencyKey ?? null,
-          templateName: ref.name,
-          templateTag: ref.tag,
-          templateHash: ref.hash,
+          templateName: resolved.templateName,
+          templateTag: resolved.templateTag,
+          templateHash: resolved.manifestHash,
           inputHash,
           pdfStandard: request.pdfStandard,
           callbackUrl: request.callbackUrl ?? null,
@@ -109,7 +96,7 @@ export class DocumentsService {
       if (request.idempotencyKey && isUniqueViolation(error)) {
         const existing = await this.findByIdempotencyKey(tenantId, request.idempotencyKey);
         if (existing) {
-          this.assertSamePayload(existing, ref, inputHash);
+          this.assertSamePayload(existing, resolved, inputHash);
           return this.toCreateResponse(existing);
         }
       }
@@ -123,6 +110,7 @@ export class DocumentsService {
         documentId: row.id,
         tenantId: row.tenantId,
         template: request.template,
+        templateHash: resolved.manifestHash,
         pdfStandard: row.pdfStandard,
         data: request.document,
         recipient: request.recipient ?? null,
@@ -180,13 +168,13 @@ export class DocumentsService {
   /** 멱등성 키가 같아도 내용(template/input)이 다르면 충돌로 처리한다. */
   private assertSamePayload(
     existing: DocumentRow,
-    ref: ParsedTemplateRef,
+    resolved: ResolvedTemplate,
     inputHash: string,
   ): void {
     const same =
       existing.inputHash === inputHash &&
-      existing.templateName === ref.name &&
-      existing.templateTag === ref.tag;
+      existing.templateName === resolved.templateName &&
+      existing.templateTag === resolved.templateTag;
     if (!same) {
       throw new ProblemException(
         'IDEMPOTENCY_CONFLICT',
