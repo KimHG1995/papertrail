@@ -19,9 +19,15 @@ export class FakePapermakeClient implements PapermakeClient {
     return Promise.resolve({ manifestHash: `sha256:${manifestHash}` });
   }
 
-  render(input: RenderInput): Promise<RenderOutput> {
+  async render(input: RenderInput): Promise<RenderOutput> {
     if (input.template.includes('fail')) {
-      return Promise.reject(new Error(`가짜 렌더 실패(시뮬레이션): ${input.template}`));
+      throw new Error(`가짜 렌더 실패(시뮬레이션): ${input.template}`);
+    }
+
+    // template 에 'slow' 가 있으면 렌더 지연을 시뮬레이션한다(동시성 제한 관찰용).
+    const delayMs = input.template.includes('slow') ? 1200 : 0;
+    if (delayMs > 0) {
+      await sleep(delayMs);
     }
 
     const payload = JSON.stringify({
@@ -32,14 +38,18 @@ export class FakePapermakeClient implements PapermakeClient {
     });
     const pdf = new TextEncoder().encode(`%PDF-1.7 papertrail-fake\n${payload}\n%%EOF`);
 
-    return Promise.resolve({
+    return {
       templateHash: `sha256:${sha256Hex(input.template)}`,
       outputHash: `sha256:${sha256Bytes(pdf)}`,
-      durationMs: 1,
+      durationMs: delayMs || 1,
       renderId: randomUUID(),
       pdf,
-    });
+    };
   }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function sha256Hex(input: string): string {

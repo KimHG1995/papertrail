@@ -39,7 +39,7 @@ PDF/A
 - [x] 템플릿 등록(publish) + JSON Schema 등록/입력 검증 + 태그 관리
 - [x] `POST /v1/documents` 단건 + 멱등성 + 입력 스키마 검증
 - [x] 큐(BullMQ 로컬, SQS 추상화 가능) + Render Worker
-- [~] 재시도/DLQ 완료, 테넌트 동시성 제한 예정(현재 전역 concurrency)
+- [x] 재시도/DLQ + 테넌트별 동시성 제한(Redis 정렬셋 + 리스 분산 세마포어)
 - [x] 증적 기록(template/input/output hash) + 문서 상세 API
 - [x] Signed URL 다운로드(결과 PDF S3/MinIO 저장 포함)
 - **완료 정의:** [01. 기능 명세 §8](01-spec.md) 수용 기준 통과

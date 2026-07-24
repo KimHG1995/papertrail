@@ -23,6 +23,7 @@
     "@papertrail/storage": "workspace:*",
     "bullmq": "^5.80.10",
     "drizzle-orm": "^0.45.2",
+    "ioredis": "^5.11.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
   },
