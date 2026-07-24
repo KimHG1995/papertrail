@@ -1,10 +1,15 @@
+import { InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import type {
-  CreateDocumentRequest,
-  CreateDocumentResponse,
-  DocumentDetail,
+import {
+  type CreateDocumentRequest,
+  type CreateDocumentResponse,
+  type DocumentDetail,
+  RENDER_JOB,
+  RENDER_QUEUE,
+  type RenderJobData,
 } from '@papertrail/contracts';
 import { type Database, type DocumentRow, document, newId } from '@papertrail/db';
+import { Queue } from 'bullmq';
 import { DEFAULT_TENANT_ID } from '../common/constants.js';
 import { ProblemException } from '../common/exceptions/problem.exception.js';
 import { hashJson } from '../common/hash/canonical-hash.js';
@@ -49,7 +54,10 @@ function isUniqueViolation(error: unknown): boolean {
 export class DocumentsService {
   private readonly logger = new Logger(DocumentsService.name);
 
-  constructor(@Inject(DRIZZLE) private readonly db: Database) {}
+  constructor(
+    @Inject(DRIZZLE) private readonly db: Database,
+    @InjectQueue(RENDER_QUEUE) private readonly renderQueue: Queue<RenderJobData>,
+  ) {}
 
   /**
    * 문서 생성 요청을 접수하고 증적 레코드를 QUEUED 로 저장한다.
@@ -107,8 +115,27 @@ export class DocumentsService {
       throw error;
     }
 
-    // TODO(M1): 큐 적재(BullMQ) → 렌더 워커가 Papermake 호출 후 상태/해시를 갱신한다.
-    this.logger.log(`문서 접수: id=${row.id}, template=${request.template}, status=${row.status}`);
+    // 렌더 작업을 큐에 적재한다. jobId=documentId 로 두어 중복 적재를 막는다.
+    await this.renderQueue.add(
+      RENDER_JOB,
+      {
+        documentId: row.id,
+        tenantId: row.tenantId,
+        template: request.template,
+        pdfStandard: row.pdfStandard,
+        data: request.document,
+        recipient: request.recipient ?? null,
+      },
+      {
+        jobId: row.id,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 1000 },
+        removeOnComplete: true,
+        removeOnFail: false,
+      },
+    );
+
+    this.logger.log(`문서 접수 및 큐 적재: id=${row.id}, template=${request.template}`);
     return this.toCreateResponse(row);
   }
 

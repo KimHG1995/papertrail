@@ -130,6 +130,13 @@ docker compose up -d                       # postgres, redis, minio, clickhouse 
 pnpm --filter @papertrail/db db:migrate    # DB 스키마 마이그레이션 적용 (+ dev 테넌트 시드)
 ```
 
+그다음 게이트웨이와 렌더 워커를 각각 띄웁니다(별도 터미널). 워커는 기본값 `PAPERMAKE_DRIVER=fake`로 Papermake(Rust) 없이 파이프라인 전체를 돌립니다.
+
+```bash
+pnpm --filter @papertrail/gateway dev   # API 게이트웨이 (http://localhost:3000, prefix /v1)
+pnpm --filter @papertrail/worker dev    # 렌더 워커 (렌더 큐 소비 → Papermake 호출 → 증적 갱신)
+```
+
 | 서비스     | 호스트 포트                  | 용도                           | 기본 자격증명              |
 | ---------- | ---------------------------- | ------------------------------ | -------------------------- |
 | PostgreSQL | 5432                         | 상태, 증적, 멱등성             | `papertrail`/`papertrail`  |
@@ -150,7 +157,7 @@ pnpm --filter @papertrail/db db:migrate    # DB 스키마 마이그레이션 적
 
 ## 상태
 
-🟢 **스캐폴딩 (M1 진행 중)** — 제품/기술 명세서와 개발 도구체인 위에, 공용 계약 패키지(`@papertrail/contracts`), NestJS 게이트웨이(표준 통신 프로토콜), 영속성 계층(`@papertrail/db`, Drizzle ORM)을 구성하고 문서 접수 API를 PostgreSQL 증적 레코드로 저장하는 단계입니다. 구현 마일스톤은 [06. 로드맵](docs/06-roadmap.md) 참조.
+🟢 **스캐폴딩 (M1 진행 중)** — 공용 계약 패키지(`@papertrail/contracts`), NestJS 게이트웨이(표준 통신 프로토콜), 영속성 계층(`@papertrail/db`, Drizzle ORM), 그리고 비동기 렌더 파이프라인(BullMQ 큐 + `@papertrail/worker` 렌더 워커 + `@papertrail/papermake-client`)까지 구성했습니다. `POST /v1/documents` → PostgreSQL 증적 저장(멱등성) → 큐 적재 → 워커 렌더(재시도/DLQ) → 상태/해시 갱신 흐름이 로컬에서 동작합니다. 구현 마일스톤은 [06. 로드맵](docs/06-roadmap.md) 참조.
 
 ## 라이선스
 

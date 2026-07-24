@@ -30,18 +30,18 @@ PDF/A
 
 - [x] 제품/기술 명세서 정의
 - [x] 리포지토리, 문서 구조
-- [ ] docker-compose 로컬 인프라 초안(Papermake, MinIO, ClickHouse, Postgres, Redis)
+- [x] docker-compose 로컬 인프라 초안(Papermake, MinIO, ClickHouse, Postgres, Redis)
 
 ### M1 — MVP 코어 (4대 흐름)
 
-- [ ] NestJS 게이트웨이 스캐폴딩(인증, 테넌트 미들웨어)
-- [ ] Papermake 연동 클라이언트(publish/render/download 래핑)
+- [~] NestJS 게이트웨이 스캐폴딩(표준 프로토콜 완료, 인증/테넌트 미들웨어 예정)
+- [x] Papermake 연동 클라이언트(render/download 래핑, http + 로컬 fake 드라이버)
 - [ ] 템플릿 등록 + JSON Schema 등록 + 태그 관리
-- [ ] `POST /v1/documents` 단건 + 멱등성
-- [ ] 큐(BullMQ 로컬 → SQS 추상화) + Render Worker
-- [ ] 재시도/DLQ, 테넌트 동시성 제한
-- [ ] 증적 기록(template/input/output hash) + 문서 상세 API
-- [ ] Signed URL 다운로드
+- [x] `POST /v1/documents` 단건 + 멱등성
+- [x] 큐(BullMQ 로컬, SQS 추상화 가능) + Render Worker
+- [~] 재시도/DLQ 완료, 테넌트 동시성 제한 예정(현재 전역 concurrency)
+- [x] 증적 기록(template/input/output hash) + 문서 상세 API
+- [ ] Signed URL 다운로드(결과 PDF S3 저장 포함)
 - **완료 정의:** [01. 기능 명세 §8](01-spec.md) 수용 기준 통과
 
 ### M2 — 차별화

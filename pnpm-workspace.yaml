@@ -9,3 +9,8 @@ packages:
 onlyBuiltDependencies:
   - '@swc/core'
   - 'esbuild'
+
+# 빌드 스크립트 실행 여부를 명시적으로 결정한 의존성.
+# msgpackr-extract(bullmq 의 선택적 네이티브 가속기)는 JS 폴백으로 동작하므로 빌드하지 않는다.
+allowBuilds:
+  msgpackr-extract: false

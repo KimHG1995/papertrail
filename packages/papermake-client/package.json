@@ -1,0 +1,29 @@
+{
+  "name": "@papertrail/papermake-client",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Papermake 렌더 엔진 클라이언트 (포트 + HTTP 어댑터 + 로컬용 fake 어댑터)",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsgo -p tsconfig.json",
+    "typecheck": "tsgo --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@papertrail/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3"
+  }
+}

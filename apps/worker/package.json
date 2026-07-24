@@ -1,9 +1,9 @@
 {
-  "name": "@papertrail/gateway",
+  "name": "@papertrail/worker",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "PaperTrail API 게이트웨이 (인증, 멀티테넌트, 멱등성, Webhook, 표준 통신 프로토콜)",
+  "description": "PaperTrail 렌더 워커 (렌더 큐 소비 → Papermake 호출 → 증적/상태 갱신, 재시도/DLQ)",
   "main": "dist/src/main.js",
   "scripts": {
     "dev": "nest start -b swc --watch",
@@ -17,21 +17,19 @@
     "@nestjs/common": "^11.1.28",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.1.28",
-    "@nestjs/platform-express": "^11.1.28",
     "@papertrail/contracts": "workspace:*",
     "@papertrail/db": "workspace:*",
+    "@papertrail/papermake-client": "workspace:*",
     "bullmq": "^5.80.10",
     "drizzle-orm": "^0.45.2",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2",
-    "zod": "^4.4.3"
+    "rxjs": "^7.8.2"
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.24",
-    "@nestjs/schematics": "^11.0.8",
+    "@nestjs/schematics": "^11.1.0",
     "@swc/cli": "^0.8.1",
     "@swc/core": "^1.15.46",
-    "@types/express": "^5.0.6",
-    "@types/node": "^24.0.0"
+    "@types/node": "^24.13.3"
   }
 }
