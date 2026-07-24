@@ -3,9 +3,11 @@ import { Inject, Logger } from '@nestjs/common';
 import { RENDER_DLQ, RENDER_JOB, RENDER_QUEUE, type RenderJobData } from '@papertrail/contracts';
 import { type Database, document } from '@papertrail/db';
 import type { PapermakeClient } from '@papertrail/papermake-client';
+import { documentPdfKey, type StorageClient } from '@papertrail/storage';
 import { Job, Queue } from 'bullmq';
 import { eq } from 'drizzle-orm';
 import { DRIZZLE } from '../database/database.constants.js';
+import { STORAGE } from '../storage/storage.constants.js';
 import { PAPERMAKE_CLIENT } from './papermake.constants.js';
 
 /**
@@ -20,6 +22,7 @@ export class RenderProcessor extends WorkerHost {
   constructor(
     @Inject(DRIZZLE) private readonly db: Database,
     @Inject(PAPERMAKE_CLIENT) private readonly papermake: PapermakeClient,
+    @Inject(STORAGE) private readonly storage: StorageClient,
     @InjectQueue(RENDER_DLQ) private readonly dlq: Queue<RenderJobData>,
   ) {
     super();
@@ -42,7 +45,10 @@ export class RenderProcessor extends WorkerHost {
       recipient: data.recipient,
     });
 
-    // TODO(다음 증분): 결과 PDF 를 S3/MinIO 에 저장(storageKey) 후 Signed URL 제공.
+    // 결과 PDF 를 S3/MinIO 에 저장하고 storageKey 를 증적에 남긴다(다운로드는 게이트웨이가 Signed URL 발급).
+    const storageKey = documentPdfKey(data.tenantId, data.documentId, new Date());
+    await this.storage.put(storageKey, result.pdf, 'application/pdf');
+
     await this.db
       .update(document)
       .set({
@@ -50,12 +56,15 @@ export class RenderProcessor extends WorkerHost {
         templateHash: result.templateHash,
         outputHash: result.outputHash,
         durationMs: result.durationMs,
+        storageKey,
         completedAt: new Date(),
         errorCode: null,
       })
       .where(eq(document.id, data.documentId));
 
-    this.logger.log(`렌더 성공: documentId=${data.documentId}, outputHash=${result.outputHash}`);
+    this.logger.log(
+      `렌더 성공: documentId=${data.documentId}, outputHash=${result.outputHash}, key=${storageKey}`,
+    );
   }
 
   @OnWorkerEvent('failed')

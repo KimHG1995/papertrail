@@ -4,16 +4,19 @@ import {
   type CreateDocumentRequest,
   type CreateDocumentResponse,
   type DocumentDetail,
+  type DownloadInfo,
   RENDER_JOB,
   RENDER_QUEUE,
   type RenderJobData,
 } from '@papertrail/contracts';
 import { type Database, type DocumentRow, document, newId } from '@papertrail/db';
+import type { StorageClient } from '@papertrail/storage';
 import { Queue } from 'bullmq';
-import { DEFAULT_TENANT_ID } from '../common/constants.js';
+import { DEFAULT_DOWNLOAD_TTL_SECONDS, DEFAULT_TENANT_ID } from '../common/constants.js';
 import { ProblemException } from '../common/exceptions/problem.exception.js';
 import { hashJson } from '../common/hash/canonical-hash.js';
 import { DRIZZLE } from '../database/database.constants.js';
+import { STORAGE } from '../storage/storage.constants.js';
 
 interface ParsedTemplateRef {
   name: string;
@@ -56,6 +59,7 @@ export class DocumentsService {
 
   constructor(
     @Inject(DRIZZLE) private readonly db: Database,
+    @Inject(STORAGE) private readonly storage: StorageClient,
     @InjectQueue(RENDER_QUEUE) private readonly renderQueue: Queue<RenderJobData>,
   ) {}
 
@@ -139,15 +143,30 @@ export class DocumentsService {
     return this.toCreateResponse(row);
   }
 
-  /** 문서 증적 상세를 조회한다. */
+  /** 문서 증적 상세를 조회한다. 결과가 있으면 downloadUrl 을 Signed URL 로 채운다. */
   async getDetail(id: string): Promise<DocumentDetail> {
+    const row = await this.findById(id);
+    return this.toDetail(row);
+  }
+
+  /** 다운로드용 Signed URL 정보를 발급한다(결과 PDF 가 있어야 한다). */
+  async getDownload(id: string, ttlSeconds: number): Promise<DownloadInfo> {
+    const row = await this.findById(id);
+    if (row.status !== 'SUCCEEDED' || !row.storageKey || !row.outputHash) {
+      throw new NotFoundException(`다운로드할 결과 PDF 가 아직 없습니다: ${id}`);
+    }
+    const { url, expiresAt } = await this.storage.presignGet(row.storageKey, ttlSeconds);
+    return { url, expiresAt: expiresAt.toISOString(), outputHash: row.outputHash };
+  }
+
+  private async findById(id: string): Promise<DocumentRow> {
     const row = await this.db.query.document.findFirst({
       where: (fields, { eq }) => eq(fields.id, id),
     });
     if (!row) {
       throw new NotFoundException(`문서를 찾을 수 없습니다: ${id}`);
     }
-    return this.toDetail(row);
+    return row;
   }
 
   private async findByIdempotencyKey(
@@ -187,7 +206,11 @@ export class DocumentsService {
     };
   }
 
-  private toDetail(row: DocumentRow): DocumentDetail {
+  private async toDetail(row: DocumentRow): Promise<DocumentDetail> {
+    const downloadUrl =
+      row.status === 'SUCCEEDED' && row.storageKey
+        ? (await this.storage.presignGet(row.storageKey, DEFAULT_DOWNLOAD_TTL_SECONDS)).url
+        : null;
     return {
       documentId: row.id,
       tenantId: row.tenantId,
@@ -201,7 +224,7 @@ export class DocumentsService {
       requestedAt: row.requestedAt.toISOString(),
       completedAt: row.completedAt ? row.completedAt.toISOString() : null,
       durationMs: row.durationMs,
-      downloadUrl: null,
+      downloadUrl,
       maskedPreview: row.maskedPreview ?? null,
     };
   }

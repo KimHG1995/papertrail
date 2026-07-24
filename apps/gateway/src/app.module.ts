@@ -8,6 +8,7 @@ import { redisConnection } from './common/redis.js';
 import { DatabaseModule } from './database/database.module.js';
 import { DocumentsModule } from './documents/documents.module.js';
 import { HealthModule } from './health/health.module.js';
+import { StorageModule } from './storage/storage.module.js';
 
 /**
  * 게이트웨이 루트 모듈.
@@ -25,6 +26,7 @@ import { HealthModule } from './health/health.module.js';
       }),
     }),
     DatabaseModule,
+    StorageModule,
     HealthModule,
     DocumentsModule,
   ],

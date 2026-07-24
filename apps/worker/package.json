@@ -20,6 +20,7 @@
     "@papertrail/contracts": "workspace:*",
     "@papertrail/db": "workspace:*",
     "@papertrail/papermake-client": "workspace:*",
+    "@papertrail/storage": "workspace:*",
     "bullmq": "^5.80.10",
     "drizzle-orm": "^0.45.2",
     "reflect-metadata": "^0.2.2",

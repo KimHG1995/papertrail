@@ -41,7 +41,7 @@ PDF/A
 - [x] 큐(BullMQ 로컬, SQS 추상화 가능) + Render Worker
 - [~] 재시도/DLQ 완료, 테넌트 동시성 제한 예정(현재 전역 concurrency)
 - [x] 증적 기록(template/input/output hash) + 문서 상세 API
-- [ ] Signed URL 다운로드(결과 PDF S3 저장 포함)
+- [x] Signed URL 다운로드(결과 PDF S3/MinIO 저장 포함)
 - **완료 정의:** [01. 기능 명세 §8](01-spec.md) 수용 기준 통과
 
 ### M2 — 차별화

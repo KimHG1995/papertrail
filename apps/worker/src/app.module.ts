@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { redisConnection } from './common/redis.js';
 import { DatabaseModule } from './database/database.module.js';
 import { RenderModule } from './render/render.module.js';
+import { StorageModule } from './storage/storage.module.js';
 
 /**
  * 렌더 워커 루트 모듈. ConfigModule/BullMQ(Redis)/DatabaseModule 를 구성하고
@@ -19,6 +20,7 @@ import { RenderModule } from './render/render.module.js';
       }),
     }),
     DatabaseModule,
+    StorageModule,
     RenderModule,
   ],
 })
