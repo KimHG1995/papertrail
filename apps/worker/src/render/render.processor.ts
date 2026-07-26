@@ -6,6 +6,7 @@ import type { PapermakeClient } from '@papertrail/papermake-client';
 import { documentPdfKey, type StorageClient } from '@papertrail/storage';
 import { DelayedError, Job, Queue } from 'bullmq';
 import { eq } from 'drizzle-orm';
+import { BatchService } from '../batch/batch.service.js';
 import { TenantConcurrencyService } from '../concurrency/tenant-concurrency.service.js';
 import { DRIZZLE } from '../database/database.constants.js';
 import { STORAGE } from '../storage/storage.constants.js';
@@ -34,6 +35,7 @@ export class RenderProcessor extends WorkerHost {
     @InjectQueue(RENDER_DLQ) private readonly dlq: Queue<RenderJobData>,
     private readonly concurrency: TenantConcurrencyService,
     private readonly webhooks: WebhookDispatcher,
+    private readonly batch: BatchService,
   ) {
     super();
   }
@@ -87,8 +89,11 @@ export class RenderProcessor extends WorkerHost {
         `렌더 성공: documentId=${data.documentId}, outputHash=${result.outputHash}, key=${storageKey}`,
       );
 
-      // 완료 통지. 실패해도 렌더 성공을 되돌리지 않도록 예외를 삼킨다(전송은 자체 큐가 재시도).
+      // 완료 후처리(배치 집계 + 통지). 실패해도 렌더 성공을 되돌리지 않도록 예외를 삼킨다.
       try {
+        if (data.batchId) {
+          await this.batch.onDocumentSettled(data.batchId, 'succeeded');
+        }
         await this.webhooks.dispatch({
           tenantId: data.tenantId,
           documentId: data.documentId,
@@ -97,7 +102,7 @@ export class RenderProcessor extends WorkerHost {
           storageKey,
         });
       } catch (error) {
-        this.logger.error(`webhook 디스패치 실패(무시): documentId=${data.documentId}`, error);
+        this.logger.error(`완료 후처리 실패(무시): documentId=${data.documentId}`, error);
       }
     } finally {
       await this.concurrency.release(data.tenantId, member);
@@ -138,13 +143,16 @@ export class RenderProcessor extends WorkerHost {
     this.logger.error(`재시도 소진 → DLQ 이동: documentId=${job.data.documentId}`);
 
     try {
+      if (job.data.batchId) {
+        await this.batch.onDocumentSettled(job.data.batchId, 'failed');
+      }
       await this.webhooks.dispatch({
         tenantId: job.data.tenantId,
         documentId: job.data.documentId,
         eventType: 'document.failed',
       });
     } catch (error) {
-      this.logger.error(`webhook 디스패치 실패(무시): documentId=${job.data.documentId}`, error);
+      this.logger.error(`완료 후처리 실패(무시): documentId=${job.data.documentId}`, error);
     }
   }
 }

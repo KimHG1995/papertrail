@@ -1,5 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import type {
+  FieldError,
   HashRef,
   RegisterTemplateRequest,
   TemplateListItem,
@@ -19,6 +20,11 @@ interface ResolvedTemplate {
   templateName: string;
   templateTag: string | null;
   manifestHash: HashRef;
+}
+
+interface ResolvedTemplateFull extends ResolvedTemplate {
+  schema: Record<string, unknown> | null;
+  schemaHash: string | null;
 }
 
 /** template 참조를 name / tag / 고정 해시로 분해한다. */
@@ -139,10 +145,10 @@ export class TemplatesService {
   }
 
   /**
-   * 렌더용으로 template 참조를 해석하고 입력을 JSON Schema 로 검증한다.
-   * 미등록 템플릿/태그는 404, 스키마 위반은 422(SCHEMA_VALIDATION_FAILED).
+   * template 참조를 해석해 매니페스트 해시와 스키마를 반환한다(입력 검증은 하지 않음).
+   * 미등록 템플릿/태그는 404. 배치처럼 한 번 해석하고 여러 입력을 검증할 때 쓴다.
    */
-  async resolveForRender(tenantId: string, ref: string, input: unknown): Promise<ResolvedTemplate> {
+  async resolveTemplate(tenantId: string, ref: string): Promise<ResolvedTemplateFull> {
     const parsed = parseTemplateRef(ref);
     const tmpl = await this.findTemplate(tenantId, parsed.name);
 
@@ -154,17 +160,40 @@ export class TemplatesService {
       throw new NotFoundException(`템플릿 버전을 찾을 수 없습니다: ${ref}`);
     }
 
-    if (version.schema && version.schemaHash) {
-      const errors = this.validator.validate(version.schemaHash, version.schema, input);
-      if (errors.length > 0) {
-        throw new SchemaValidationException(errors);
-      }
-    }
-
     return {
       templateName: parsed.name,
       templateTag: parsed.tag,
       manifestHash,
+      schema: version.schema,
+      schemaHash: version.schemaHash,
+    };
+  }
+
+  /** 해석된 템플릿의 스키마로 입력을 검증한다(스키마 없으면 빈 배열). */
+  validateInput(
+    resolved: Pick<ResolvedTemplateFull, 'schema' | 'schemaHash'>,
+    input: unknown,
+  ): FieldError[] {
+    if (resolved.schema && resolved.schemaHash) {
+      return this.validator.validate(resolved.schemaHash, resolved.schema, input);
+    }
+    return [];
+  }
+
+  /**
+   * 렌더용으로 template 참조를 해석하고 입력을 JSON Schema 로 검증한다.
+   * 미등록 템플릿/태그는 404, 스키마 위반은 422(SCHEMA_VALIDATION_FAILED).
+   */
+  async resolveForRender(tenantId: string, ref: string, input: unknown): Promise<ResolvedTemplate> {
+    const resolved = await this.resolveTemplate(tenantId, ref);
+    const errors = this.validateInput(resolved, input);
+    if (errors.length > 0) {
+      throw new SchemaValidationException(errors);
+    }
+    return {
+      templateName: resolved.templateName,
+      templateTag: resolved.templateTag,
+      manifestHash: resolved.manifestHash,
     };
   }
 

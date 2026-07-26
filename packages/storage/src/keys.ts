@@ -7,3 +7,13 @@ export function documentPdfKey(tenantId: string, documentId: string, at: Date): 
   const mm = String(at.getUTCMonth() + 1).padStart(2, '0');
   return `documents/${tenantId}/${yyyy}/${mm}/${documentId}.pdf`;
 }
+
+/** 배치 원본 CSV 의 S3 키. */
+export function batchSourceKey(tenantId: string, batchId: string): string {
+  return `batches/${tenantId}/${batchId}/source.csv`;
+}
+
+/** 배치 결과 리포트 CSV 의 S3 키. */
+export function batchReportKey(tenantId: string, batchId: string): string {
+  return `batches/${tenantId}/${batchId}/report.csv`;
+}

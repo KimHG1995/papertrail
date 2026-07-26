@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { AuthGuard } from './auth/auth.guard.js';
+import { BatchesModule } from './batches/batches.module.js';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import { ResponseTransformInterceptor } from './common/interceptors/response-transform.interceptor.js';
 import { redisConnection } from './common/redis.js';
@@ -33,6 +34,7 @@ import { WebhooksModule } from './webhooks/webhooks.module.js';
     HealthModule,
     TemplatesModule,
     DocumentsModule,
+    BatchesModule,
     WebhooksModule,
   ],
   providers: [

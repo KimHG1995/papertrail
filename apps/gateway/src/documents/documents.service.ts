@@ -109,6 +109,7 @@ export class DocumentsService {
       {
         documentId: row.id,
         tenantId: row.tenantId,
+        batchId: null,
         template: request.template,
         templateHash: resolved.manifestHash,
         pdfStandard: row.pdfStandard,

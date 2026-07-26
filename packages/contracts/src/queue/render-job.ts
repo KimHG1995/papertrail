@@ -18,6 +18,7 @@ export const RENDER_JOB = 'render-document';
 export const RenderJobData = z.object({
   documentId: z.string(),
   tenantId: z.string(),
+  batchId: z.string().nullable(),
   template: z.string(),
   templateHash: HashRef,
   pdfStandard: PdfStandard,
