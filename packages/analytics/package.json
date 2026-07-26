@@ -1,0 +1,27 @@
+{
+  "name": "@papertrail/analytics",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "PaperTrail 분석 클라이언트 (ClickHouse 렌더 이벤트 적재 + 통계 조회)",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsgo -p tsconfig.json",
+    "typecheck": "tsgo --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@clickhouse/client": "^1.23.1",
+    "@papertrail/contracts": "workspace:*"
+  }
+}

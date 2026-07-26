@@ -1,11 +1,13 @@
 import { InjectQueue, OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Logger } from '@nestjs/common';
 import { RENDER_DLQ, RENDER_JOB, RENDER_QUEUE, type RenderJobData } from '@papertrail/contracts';
-import { type Database, document } from '@papertrail/db';
+import type { AnalyticsClient } from '@papertrail/analytics';
+import { type Database, type DocumentRow, document } from '@papertrail/db';
 import type { PapermakeClient } from '@papertrail/papermake-client';
 import { documentPdfKey, type StorageClient } from '@papertrail/storage';
 import { DelayedError, Job, Queue } from 'bullmq';
 import { eq } from 'drizzle-orm';
+import { ANALYTICS } from '../analytics/analytics.constants.js';
 import { BatchService } from '../batch/batch.service.js';
 import { TenantConcurrencyService } from '../concurrency/tenant-concurrency.service.js';
 import { DRIZZLE } from '../database/database.constants.js';
@@ -36,6 +38,7 @@ export class RenderProcessor extends WorkerHost {
     private readonly concurrency: TenantConcurrencyService,
     private readonly webhooks: WebhookDispatcher,
     private readonly batch: BatchService,
+    @Inject(ANALYTICS) private readonly analytics: AnalyticsClient,
   ) {
     super();
   }
@@ -71,7 +74,7 @@ export class RenderProcessor extends WorkerHost {
       const storageKey = documentPdfKey(data.tenantId, data.documentId, new Date());
       await this.storage.put(storageKey, result.pdf, 'application/pdf');
 
-      await this.db
+      const updated = await this.db
         .update(document)
         .set({
           // templateHash 는 접수 시 레지스트리에서 해석한 값을 그대로 유지한다(렌더 결과보다 권위 있음).
@@ -83,17 +86,19 @@ export class RenderProcessor extends WorkerHost {
           completedAt: new Date(),
           errorCode: null,
         })
-        .where(eq(document.id, data.documentId));
+        .where(eq(document.id, data.documentId))
+        .returning();
 
       this.logger.log(
         `렌더 성공: documentId=${data.documentId}, outputHash=${result.outputHash}, key=${storageKey}`,
       );
 
-      // 완료 후처리(배치 집계 + 통지). 실패해도 렌더 성공을 되돌리지 않도록 예외를 삼킨다.
+      // 완료 후처리(배치 집계 + 통지 + 이벤트 적재). 실패해도 렌더 성공을 되돌리지 않도록 예외를 삼킨다.
       try {
         if (data.batchId) {
           await this.batch.onDocumentSettled(data.batchId, 'succeeded');
         }
+        await this.recordEvent(updated[0], data, 'SUCCEEDED', '', result.durationMs);
         await this.webhooks.dispatch({
           tenantId: data.tenantId,
           documentId: data.documentId,
@@ -135,10 +140,11 @@ export class RenderProcessor extends WorkerHost {
     }
 
     // 재시도 소진 → 문서 FAILED + DLQ 로 이동.
-    await this.db
+    const updated = await this.db
       .update(document)
       .set({ status: 'FAILED', errorCode: 'RENDER_UPSTREAM', completedAt: new Date() })
-      .where(eq(document.id, job.data.documentId));
+      .where(eq(document.id, job.data.documentId))
+      .returning();
     await this.dlq.add(RENDER_JOB, job.data, { jobId: job.data.documentId });
     this.logger.error(`재시도 소진 → DLQ 이동: documentId=${job.data.documentId}`);
 
@@ -146,6 +152,7 @@ export class RenderProcessor extends WorkerHost {
       if (job.data.batchId) {
         await this.batch.onDocumentSettled(job.data.batchId, 'failed');
       }
+      await this.recordEvent(updated[0], job.data, 'FAILED', 'RENDER_UPSTREAM', 0);
       await this.webhooks.dispatch({
         tenantId: job.data.tenantId,
         documentId: job.data.documentId,
@@ -154,5 +161,30 @@ export class RenderProcessor extends WorkerHost {
     } catch (error) {
       this.logger.error(`완료 후처리 실패(무시): documentId=${job.data.documentId}`, error);
     }
+  }
+
+  /** 렌더 이벤트를 ClickHouse 에 적재한다(문서 행 기준, 최선 노력). */
+  private async recordEvent(
+    row: DocumentRow | undefined,
+    data: RenderJobData,
+    status: 'SUCCEEDED' | 'FAILED',
+    errorCode: string,
+    durationMs: number,
+  ): Promise<void> {
+    await this.analytics.recordRenderEvent({
+      eventTime: new Date(),
+      tenantId: data.tenantId,
+      documentId: data.documentId,
+      batchId: data.batchId ?? '',
+      templateName: row?.templateName ?? '',
+      templateHash: data.templateHash,
+      inputHash: row?.inputHash ?? '',
+      outputHash: row?.outputHash ?? '',
+      pdfStandard: data.pdfStandard,
+      status,
+      errorCode,
+      attempt: row?.attemptCount ?? 0,
+      durationMs,
+    });
   }
 }

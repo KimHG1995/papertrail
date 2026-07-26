@@ -1,6 +1,7 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { AnalyticsModule } from './analytics/analytics.module.js';
 import { redisConnection } from './common/redis.js';
 import { DatabaseModule } from './database/database.module.js';
 import { RenderModule } from './render/render.module.js';
@@ -22,6 +23,7 @@ import { WebhookModule } from './webhook/webhook.module.js';
     }),
     DatabaseModule,
     StorageModule,
+    AnalyticsModule,
     WebhookModule,
     RenderModule,
   ],

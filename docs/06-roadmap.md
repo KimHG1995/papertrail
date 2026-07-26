@@ -51,7 +51,7 @@ PDF/A
 - [ ] PDF/A-2b / a-3b 옵션
 - [ ] 템플릿 승인 워크플로(DRAFT→...→DEPRECATED) + RBAC
 - [ ] 버전 diff, 미리보기
-- [ ] ClickHouse 이벤트 적재 + 통계 API
+- [x] ClickHouse 이벤트 적재 + 통계 API(render_event 적재, /v1/stats/overview)
 
 ### M3 — 운영/관측/보안 강화
 
