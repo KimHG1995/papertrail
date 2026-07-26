@@ -8,14 +8,18 @@ import {
   RENDER_JOB,
   RENDER_QUEUE,
   type RenderJobData,
+  type VerifyDocumentRequest,
+  type VerifyResult,
 } from '@papertrail/contracts';
 import { type Database, type DocumentRow, document, newId } from '@papertrail/db';
+import type { PapermakeClient } from '@papertrail/papermake-client';
 import type { StorageClient } from '@papertrail/storage';
 import { Queue } from 'bullmq';
 import { DEFAULT_DOWNLOAD_TTL_SECONDS } from '../common/constants.js';
 import { ProblemException } from '../common/exceptions/problem.exception.js';
 import { hashJson } from '../common/hash/canonical-hash.js';
 import { DRIZZLE } from '../database/database.constants.js';
+import { PAPERMAKE_CLIENT } from '../papermake/papermake.constants.js';
 import { STORAGE } from '../storage/storage.constants.js';
 import { TemplatesService } from '../templates/templates.service.js';
 
@@ -40,6 +44,7 @@ export class DocumentsService {
   constructor(
     @Inject(DRIZZLE) private readonly db: Database,
     @Inject(STORAGE) private readonly storage: StorageClient,
+    @Inject(PAPERMAKE_CLIENT) private readonly papermake: PapermakeClient,
     @InjectQueue(RENDER_QUEUE) private readonly renderQueue: Queue<RenderJobData>,
     private readonly templates: TemplatesService,
   ) {}
@@ -143,6 +148,42 @@ export class DocumentsService {
     }
     const { url, expiresAt } = await this.storage.presignGet(row.storageKey, ttlSeconds);
     return { url, expiresAt: expiresAt.toISOString(), outputHash: row.outputHash };
+  }
+
+  /**
+   * 재현성 검증. 원본 입력을 다시 제출받아 inputHash 를 재계산하고, 접수 시 고정된
+   * 템플릿, 동일 입력으로 재렌더해 outputHash 를 저장값과 대조한다.
+   * 동일 입력이면 동일 outputHash 가 나와야 한다(재현성).
+   */
+  async verify(tenantId: string, id: string, req: VerifyDocumentRequest): Promise<VerifyResult> {
+    const row = await this.findByIdForTenant(tenantId, id);
+    if (row.status !== 'SUCCEEDED' || !row.outputHash || !row.templateHash) {
+      throw new ProblemException(
+        'BAD_REQUEST',
+        `완료(SUCCEEDED)된 문서만 검증할 수 있습니다: ${id} (현재 ${row.status})`,
+      );
+    }
+
+    const actualInputHash = hashJson({ recipient: req.recipient ?? null, document: req.document });
+    // 접수 시 렌더에 쓰인 것과 동일한 참조로 재렌더한다(태그면 name:tag, 아니면 name@해시).
+    const ref = row.templateTag
+      ? `${row.templateName}:${row.templateTag}`
+      : `${row.templateName}@${row.templateHash}`;
+    const result = await this.papermake.render({
+      template: ref,
+      pdfStandard: row.pdfStandard,
+      data: req.document,
+      recipient: req.recipient ?? null,
+    });
+
+    const inputMatches = actualInputHash === row.inputHash;
+    const outputMatches = result.outputHash === row.outputHash;
+    return {
+      documentId: row.id,
+      reproducible: inputMatches && outputMatches,
+      inputHash: { expected: row.inputHash, actual: actualInputHash, matches: inputMatches },
+      outputHash: { expected: row.outputHash, actual: result.outputHash, matches: outputMatches },
+    };
   }
 
   /** 테넌트 소유의 문서만 조회한다. 다른 테넌트의 문서는 존재 노출을 피해 404 로 처리한다. */

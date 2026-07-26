@@ -1,8 +1,10 @@
 import { Body, Controller, Get, HttpCode, Param, Post, Query, Req, Res } from '@nestjs/common';
 import {
   CreateDocumentRequest,
+  VerifyDocumentRequest,
   type CreateDocumentResponse,
   type DocumentDetail,
+  type VerifyResult,
 } from '@papertrail/contracts';
 import type { Request, Response } from 'express';
 import { CurrentTenant } from '../auth/current-tenant.decorator.js';
@@ -49,6 +51,17 @@ export class DocumentsController {
   @RequiredScopes('documents:read')
   findOne(@CurrentTenant() tenantId: string, @Param('id') id: string): Promise<DocumentDetail> {
     return this.documents.getDetail(tenantId, id);
+  }
+
+  /** 재현성 검증. 원본 입력을 다시 제출받아 재렌더 후 저장된 해시와 대조한다. */
+  @Post(':id/verify')
+  @RequiredScopes('documents:read')
+  verify(
+    @CurrentTenant() tenantId: string,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(VerifyDocumentRequest)) body: VerifyDocumentRequest,
+  ): Promise<VerifyResult> {
+    return this.documents.verify(tenantId, id, body);
   }
 
   /**

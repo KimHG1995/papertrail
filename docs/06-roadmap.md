@@ -58,7 +58,7 @@ PDF/A
 - [ ] Admin 콘솔(Next.js) 전체
 - [ ] PII 암호화 저장/마스킹/보관정책(lifecycle)
 - [~] 테넌트별 레이트 리밋(Redis 고정 윈도우, 429 + Retry-After) 완료, 월 쿼터/운영 감사 로그 예정
-- [ ] 재현 검증 도구(동일 입력 → 동일 outputHash 확인)
+- [x] 재현 검증 도구(POST /v1/documents/{id}/verify, 동일 입력 재렌더 → outputHash 대조)
 - [ ] 관측성(메트릭/트레이싱/알림)
 
 ### M4 — 전자문서 발송 연동

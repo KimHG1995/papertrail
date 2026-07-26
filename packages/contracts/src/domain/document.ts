@@ -58,3 +58,26 @@ export const DownloadInfo = z.object({
   outputHash: HashRef,
 });
 export type DownloadInfo = z.infer<typeof DownloadInfo>;
+
+/** POST /v1/documents/{id}/verify 요청 본문 (원본 입력을 다시 제출해 재현성 검증). */
+export const VerifyDocumentRequest = z.object({
+  recipient: JsonObject.optional(),
+  document: JsonObject,
+});
+export type VerifyDocumentRequest = z.infer<typeof VerifyDocumentRequest>;
+
+/** 저장된 해시 vs 재계산 해시 비교. */
+const HashComparison = z.object({
+  expected: HashRef,
+  actual: HashRef,
+  matches: z.boolean(),
+});
+
+/** POST /v1/documents/{id}/verify 응답 data (재현성 검증 결과). */
+export const VerifyResult = z.object({
+  documentId: z.string(),
+  reproducible: z.boolean(),
+  inputHash: HashComparison,
+  outputHash: HashComparison,
+});
+export type VerifyResult = z.infer<typeof VerifyResult>;
