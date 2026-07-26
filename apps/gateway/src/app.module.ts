@@ -3,10 +3,12 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { AuthGuard } from './auth/auth.guard.js';
+import { RateLimitGuard } from './auth/rate-limit.guard.js';
 import { AnalyticsModule } from './analytics/analytics.module.js';
 import { BatchesModule } from './batches/batches.module.js';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import { ResponseTransformInterceptor } from './common/interceptors/response-transform.interceptor.js';
+import { RateLimiterService } from './common/rate-limiter.service.js';
 import { redisConnection } from './common/redis.js';
 import { DatabaseModule } from './database/database.module.js';
 import { DocumentsModule } from './documents/documents.module.js';
@@ -42,7 +44,10 @@ import { WebhooksModule } from './webhooks/webhooks.module.js';
     StatsModule,
   ],
   providers: [
+    RateLimiterService,
+    // 전역 가드는 등록 순서대로 실행된다: 인증(테넌트 주입) → 레이트 리밋.
     { provide: APP_GUARD, useClass: AuthGuard },
+    { provide: APP_GUARD, useClass: RateLimitGuard },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
     { provide: APP_INTERCEPTOR, useClass: ResponseTransformInterceptor },
   ],
