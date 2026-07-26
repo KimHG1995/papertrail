@@ -10,6 +10,7 @@ export const ERROR_CODES = {
   FORBIDDEN: { status: 403, slug: 'forbidden', title: 'Forbidden' },
   NOT_FOUND: { status: 404, slug: 'not-found', title: 'Not Found' },
   IDEMPOTENCY_CONFLICT: { status: 409, slug: 'idempotency-conflict', title: 'Conflict' },
+  TEMPLATE_NOT_PUBLISHED: { status: 409, slug: 'template-not-published', title: 'Conflict' },
   SCHEMA_VALIDATION_FAILED: {
     status: 422,
     slug: 'unprocessable-entity',

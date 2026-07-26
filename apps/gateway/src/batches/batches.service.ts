@@ -52,8 +52,9 @@ export class BatchesService {
       throw new ProblemException('BAD_REQUEST', 'CSV 에 데이터 행이 없습니다.');
     }
 
-    // 템플릿은 한 번 해석하고, 행마다 입력만 검증한다(미등록 템플릿은 404).
+    // 템플릿은 한 번 해석하고, 행마다 입력만 검증한다(미등록 404, 미발행 409).
     const resolved = await this.templates.resolveTemplate(tenantId, req.template);
+    this.templates.assertPublished(resolved);
 
     const batchId = newId('batch');
     const sourceCsvKey = batchSourceKey(tenantId, batchId);

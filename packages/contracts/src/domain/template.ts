@@ -69,3 +69,11 @@ export const TransitionStateRequest = z.object({
   to: TemplateState,
 });
 export type TransitionStateRequest = z.infer<typeof TransitionStateRequest>;
+
+/** POST /v1/templates/{name}/state 응답 data (전이 결과). */
+export const TemplateStateChanged = z.object({
+  name: TemplateName,
+  manifestHash: HashRef,
+  state: TemplateState,
+});
+export type TemplateStateChanged = z.infer<typeof TemplateStateChanged>;

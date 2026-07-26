@@ -2,8 +2,10 @@ import { Body, Controller, Get, HttpCode, Param, Post, Query } from '@nestjs/com
 import {
   RegisterTemplateRequest,
   TemplateName,
+  TransitionStateRequest,
   type TemplateListItem,
   type TemplatePublished,
+  type TemplateStateChanged,
   type TemplateTags,
 } from '@papertrail/contracts';
 import { CurrentTenant } from '../auth/current-tenant.decorator.js';
@@ -41,5 +43,16 @@ export class TemplatesController {
     @Param('name', new ZodValidationPipe(TemplateName)) name: string,
   ): Promise<TemplateTags> {
     return this.templates.getTags(tenantId, name);
+  }
+
+  /** 상태 전이(승인 워크플로). 승인자 권한(templates:approve)이 필요하다. */
+  @Post(':name/state')
+  @RequiredScopes('templates:approve')
+  transition(
+    @CurrentTenant() tenantId: string,
+    @Param('name', new ZodValidationPipe(TemplateName)) name: string,
+    @Body(new ZodValidationPipe(TransitionStateRequest)) body: TransitionStateRequest,
+  ): Promise<TemplateStateChanged> {
+    return this.templates.transitionState(tenantId, name, body.manifestHash, body.to);
   }
 }

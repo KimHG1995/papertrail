@@ -5,12 +5,17 @@ import type {
   RegisterTemplateRequest,
   TemplateListItem,
   TemplatePublished,
+  TemplateState,
+  TemplateStateChanged,
   TemplateTags,
 } from '@papertrail/contracts';
 import { type Database, newId, template, templateTag, templateVersion } from '@papertrail/db';
 import type { PapermakeClient } from '@papertrail/papermake-client';
 import { and, desc, eq } from 'drizzle-orm';
-import { SchemaValidationException } from '../common/exceptions/problem.exception.js';
+import {
+  ProblemException,
+  SchemaValidationException,
+} from '../common/exceptions/problem.exception.js';
 import { hashJson } from '../common/hash/canonical-hash.js';
 import { DRIZZLE } from '../database/database.constants.js';
 import { PAPERMAKE_CLIENT } from '../papermake/papermake.constants.js';
@@ -25,7 +30,17 @@ interface ResolvedTemplate {
 interface ResolvedTemplateFull extends ResolvedTemplate {
   schema: Record<string, unknown> | null;
   schemaHash: string | null;
+  state: TemplateState;
 }
+
+/** 승인 워크플로에서 허용된 상태 전이. */
+const VALID_TRANSITIONS: Record<TemplateState, TemplateState[]> = {
+  DRAFT: ['REVIEWING'],
+  REVIEWING: ['APPROVED', 'DRAFT'],
+  APPROVED: ['PUBLISHED', 'DRAFT'],
+  PUBLISHED: ['DEPRECATED'],
+  DEPRECATED: [],
+};
 
 /** template 참조를 name / tag / 고정 해시로 분해한다. */
 function parseTemplateRef(ref: string): { name: string; tag: string | null; hash: string | null } {
@@ -49,7 +64,11 @@ export class TemplatesService {
     private readonly validator: SchemaValidatorService,
   ) {}
 
-  /** 템플릿을 등록(publish)하고 태그를 이동한다. schema 가 있으면 유효성부터 확인한다. */
+  /**
+   * 템플릿을 등록(publish)하고 태그를 이동한다. 새 버전은 DRAFT 로 시작하며,
+   * 렌더에 쓰이려면 승인 워크플로를 거쳐 PUBLISHED 가 되어야 한다.
+   * 재등록(같은 manifestHash)은 스키마만 갱신하고 기존 상태는 보존한다.
+   */
   async register(
     tenantId: string,
     name: string,
@@ -75,7 +94,7 @@ export class TemplatesService {
       .onConflictDoNothing({ target: [template.tenantId, template.name] });
     const tmpl = await this.findTemplate(tenantId, name);
 
-    await this.db
+    const versions = await this.db
       .insert(templateVersion)
       .values({
         id: newId('tmplver'),
@@ -83,12 +102,17 @@ export class TemplatesService {
         manifestHash,
         schemaHash,
         schema: req.schema ?? null,
-        state: 'PUBLISHED',
+        state: 'DRAFT',
       })
       .onConflictDoUpdate({
         target: [templateVersion.templateId, templateVersion.manifestHash],
         set: { schema: req.schema ?? null, schemaHash },
-      });
+      })
+      .returning();
+    const version = versions[0];
+    if (!version) {
+      throw new Error('템플릿 버전 생성에 실패했습니다.');
+    }
 
     await this.db
       .insert(templateTag)
@@ -98,7 +122,43 @@ export class TemplatesService {
         set: { manifestHash, updatedAt: new Date() },
       });
 
-    return { name, tag, manifestHash, state: 'PUBLISHED', createdAt: new Date().toISOString() };
+    return {
+      name,
+      tag,
+      manifestHash,
+      state: version.state,
+      createdAt: version.createdAt.toISOString(),
+    };
+  }
+
+  /**
+   * 템플릿 버전의 상태를 전이한다(승인 워크플로). 허용되지 않는 전이는 400.
+   * 승인자 권한(templates:approve)이 필요하다(라우트에서 게이팅).
+   */
+  async transitionState(
+    tenantId: string,
+    name: string,
+    manifestHash: string,
+    to: TemplateState,
+  ): Promise<TemplateStateChanged> {
+    const tmpl = await this.findTemplate(tenantId, name);
+    const version = await this.db.query.templateVersion.findFirst({
+      where: (v, { and: a, eq: e }) => a(e(v.templateId, tmpl.id), e(v.manifestHash, manifestHash)),
+    });
+    if (!version) {
+      throw new NotFoundException(`템플릿 버전을 찾을 수 없습니다: ${name} ${manifestHash}`);
+    }
+    if (!VALID_TRANSITIONS[version.state].includes(to)) {
+      throw new ProblemException(
+        'BAD_REQUEST',
+        `허용되지 않는 상태 전이입니다: ${version.state} → ${to}`,
+      );
+    }
+    await this.db
+      .update(templateVersion)
+      .set({ state: to })
+      .where(eq(templateVersion.id, version.id));
+    return { name, manifestHash, state: to };
   }
 
   /** 테넌트의 템플릿 목록(최신 태그 포함). */
@@ -166,7 +226,18 @@ export class TemplatesService {
       manifestHash,
       schema: version.schema,
       schemaHash: version.schemaHash,
+      state: version.state,
     };
+  }
+
+  /** 렌더 가능(PUBLISHED) 상태인지 확인한다. 아니면 409(TEMPLATE_NOT_PUBLISHED). */
+  assertPublished(resolved: Pick<ResolvedTemplateFull, 'state' | 'templateName'>): void {
+    if (resolved.state !== 'PUBLISHED') {
+      throw new ProblemException(
+        'TEMPLATE_NOT_PUBLISHED',
+        `템플릿이 발행(PUBLISHED) 상태가 아닙니다: ${resolved.templateName} (현재 ${resolved.state})`,
+      );
+    }
   }
 
   /** 해석된 템플릿의 스키마로 입력을 검증한다(스키마 없으면 빈 배열). */
@@ -186,6 +257,7 @@ export class TemplatesService {
    */
   async resolveForRender(tenantId: string, ref: string, input: unknown): Promise<ResolvedTemplate> {
     const resolved = await this.resolveTemplate(tenantId, ref);
+    this.assertPublished(resolved);
     const errors = this.validateInput(resolved, input);
     if (errors.length > 0) {
       throw new SchemaValidationException(errors);

@@ -116,18 +116,19 @@
 
 `code` 는 기계 판독용, `type` 은 `.../problems/{code-kebab}` 로 매핑된다.
 
-| HTTP | code                       | type slug              | 의미                                        |
-| ---- | -------------------------- | ---------------------- | ------------------------------------------- |
-| 400  | `BAD_REQUEST`              | `bad-request`          | 잘못된 요청 형식                            |
-| 400  | `VALIDATION_FAILED`        | `bad-request`          | JSON/Zod 스키마 검증 실패 (`errors[]` 포함) |
-| 401  | `UNAUTHORIZED`             | `unauthorized`         | API Key 없음/무효                           |
-| 403  | `FORBIDDEN`                | `forbidden`            | 권한/테넌트 불일치                          |
-| 404  | `NOT_FOUND`                | `not-found`            | 리소스 없음(템플릿/문서)                    |
-| 409  | `IDEMPOTENCY_CONFLICT`     | `idempotency-conflict` | 같은 멱등키 + 다른 본문                     |
-| 422  | `SCHEMA_VALIDATION_FAILED` | `unprocessable-entity` | 템플릿 JSON Schema 대비 렌더 데이터 부적합  |
-| 429  | `RATE_LIMITED`             | `rate-limited`         | 쿼터 초과 (`Retry-After` 동반)              |
-| 500  | `INTERNAL`                 | `internal`             | 서버 오류                                   |
-| 502  | `RENDER_UPSTREAM`          | `render-upstream`      | Papermake 렌더 오류                         |
+| HTTP | code                       | type slug                | 의미                                        |
+| ---- | -------------------------- | ------------------------ | ------------------------------------------- |
+| 400  | `BAD_REQUEST`              | `bad-request`            | 잘못된 요청 형식                            |
+| 400  | `VALIDATION_FAILED`        | `bad-request`            | JSON/Zod 스키마 검증 실패 (`errors[]` 포함) |
+| 401  | `UNAUTHORIZED`             | `unauthorized`           | API Key 없음/무효                           |
+| 403  | `FORBIDDEN`                | `forbidden`              | 권한/테넌트 불일치                          |
+| 404  | `NOT_FOUND`                | `not-found`              | 리소스 없음(템플릿/문서)                    |
+| 409  | `IDEMPOTENCY_CONFLICT`     | `idempotency-conflict`   | 같은 멱등키 + 다른 본문                     |
+| 409  | `TEMPLATE_NOT_PUBLISHED`   | `template-not-published` | 렌더 대상 템플릿이 PUBLISHED 상태 아님      |
+| 422  | `SCHEMA_VALIDATION_FAILED` | `unprocessable-entity`   | 템플릿 JSON Schema 대비 렌더 데이터 부적합  |
+| 429  | `RATE_LIMITED`             | `rate-limited`           | 쿼터 초과 (`Retry-After` 동반)              |
+| 500  | `INTERNAL`                 | `internal`               | 서버 오류                                   |
+| 502  | `RENDER_UPSTREAM`          | `render-upstream`        | Papermake 렌더 오류                         |
 
 > `VALIDATION_FAILED`(400) 는 API 요청 스키마(Zod) 위반, `SCHEMA_VALIDATION_FAILED`(422) 는 렌더 데이터가 해당 템플릿의 JSON Schema 계약을 어긴 경우로 구분한다. 둘 다 `errors[]` 확장 멤버를 사용한다.
 

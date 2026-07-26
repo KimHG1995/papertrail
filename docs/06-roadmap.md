@@ -49,7 +49,7 @@ PDF/A
 - [x] CSV 대량(batch) 생성 + 진행률 + 결과 리포트(CSV, Signed URL)
 - [x] Webhook 서명 발송 + 재시도(HMAC-SHA256, 엔드포인트 등록, delivery 추적)
 - [ ] PDF/A-2b / a-3b 옵션
-- [ ] 템플릿 승인 워크플로(DRAFT→...→DEPRECATED) + RBAC
+- [x] 템플릿 승인 워크플로(DRAFT→REVIEWING→APPROVED→PUBLISHED→DEPRECATED, PUBLISHED 만 렌더) + 스코프 기반 승인자 권한(templates:approve). 콘솔 사용자 RBAC 는 M3.
 - [ ] 버전 diff, 미리보기
 - [x] ClickHouse 이벤트 적재 + 통계 API(render_event 적재, /v1/stats/overview)
 
