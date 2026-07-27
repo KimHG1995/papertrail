@@ -18,6 +18,7 @@ import { Queue } from 'bullmq';
 import { DEFAULT_DOWNLOAD_TTL_SECONDS } from '../common/constants.js';
 import { ProblemException } from '../common/exceptions/problem.exception.js';
 import { hashJson } from '../common/hash/canonical-hash.js';
+import { maskPreview } from '../common/pii-mask.js';
 import { DRIZZLE } from '../database/database.constants.js';
 import { PAPERMAKE_CLIENT } from '../papermake/papermake.constants.js';
 import { STORAGE } from '../storage/storage.constants.js';
@@ -88,6 +89,10 @@ export class DocumentsService {
           inputHash,
           pdfStandard: request.pdfStandard,
           callbackUrl: request.callbackUrl ?? null,
+          maskedPreview: maskPreview({
+            recipient: request.recipient ?? null,
+            document: request.document,
+          }),
           status: 'QUEUED',
         })
         .returning();

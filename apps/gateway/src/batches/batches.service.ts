@@ -15,6 +15,7 @@ import { parse } from 'csv-parse/sync';
 import { DEFAULT_DOWNLOAD_TTL_SECONDS } from '../common/constants.js';
 import { ProblemException } from '../common/exceptions/problem.exception.js';
 import { hashJson } from '../common/hash/canonical-hash.js';
+import { maskPreview } from '../common/pii-mask.js';
 import { DRIZZLE } from '../database/database.constants.js';
 import { STORAGE } from '../storage/storage.constants.js';
 import { TemplatesService } from '../templates/templates.service.js';
@@ -76,6 +77,7 @@ export class BatchesService {
         templateHash: resolved.manifestHash,
         inputHash,
         pdfStandard: req.pdfStandard,
+        maskedPreview: maskPreview({ recipient: null, document: row }),
       };
       const errors = this.templates.validateInput(resolved, row);
       if (errors.length > 0) {
