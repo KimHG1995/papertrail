@@ -59,7 +59,7 @@ PDF/A
 - [~] PII 마스킹(접수 시 maskedPreview 생성, 입력 원문 미저장) 완료, 암호화 저장/보관정책(lifecycle) 예정
 - [~] 테넌트별 레이트 리밋(429 + Retry-After) + 운영 감사 로그(변경 요청 자동 기록, GET /v1/audit) 완료, 월 쿼터 예정
 - [x] 재현 검증 도구(POST /v1/documents/{id}/verify, 동일 입력 재렌더 → outputHash 대조)
-- [ ] 관측성(메트릭/트레이싱/알림)
+- [~] 관측성: Prometheus 메트릭(/metrics, HTTP RED 히스토그램 + 기본 프로세스 메트릭) 완료, 트레이싱/알림 예정
 
 ### M4 — 전자문서 발송 연동
 

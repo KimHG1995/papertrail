@@ -15,6 +15,7 @@ import { redisConnection } from './common/redis.js';
 import { DatabaseModule } from './database/database.module.js';
 import { DocumentsModule } from './documents/documents.module.js';
 import { HealthModule } from './health/health.module.js';
+import { MetricsModule } from './metrics/metrics.module.js';
 import { StatsModule } from './stats/stats.module.js';
 import { StorageModule } from './storage/storage.module.js';
 import { TemplatesModule } from './templates/templates.module.js';
@@ -39,6 +40,7 @@ import { WebhooksModule } from './webhooks/webhooks.module.js';
     StorageModule,
     AnalyticsModule,
     AuditModule,
+    MetricsModule,
     HealthModule,
     TemplatesModule,
     DocumentsModule,
@@ -53,6 +55,7 @@ import { WebhooksModule } from './webhooks/webhooks.module.js';
     { provide: APP_GUARD, useClass: RateLimitGuard },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
     // 인터셉터는 등록 순서대로 감싼다: 응답 정형화(바깥) → 감사(안쪽, 원본 데이터 관찰).
+    // 메트릭은 가드 거부까지 포착하도록 main.ts 의 미들웨어에서 기록한다.
     { provide: APP_INTERCEPTOR, useClass: ResponseTransformInterceptor },
     { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
   ],
