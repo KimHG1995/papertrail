@@ -239,6 +239,24 @@ export const usageCounter = pgTable(
   (table) => [primaryKey({ columns: [table.tenantId, table.period] })],
 );
 
+/** 감사 로그. 인증된 변경 요청을 append-only 로 기록한다(누가, 언제, 무엇을). */
+export const auditLog = pgTable(
+  'audit_log',
+  {
+    id: text('id').primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenant.id),
+    apiKeyId: text('api_key_id'),
+    action: text('action').notNull(),
+    resourceId: text('resource_id'),
+    statusCode: integer('status_code').notNull(),
+    traceId: text('trace_id'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('audit_log_tenant_created_idx').on(table.tenantId, table.createdAt)],
+);
+
 /** 문서 레코드의 select 타입(증적 매핑에 사용). */
 export type DocumentRow = typeof document.$inferSelect;
 /** 문서 레코드의 insert 타입. */

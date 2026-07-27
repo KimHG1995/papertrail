@@ -50,6 +50,20 @@
       "when": 1785106220935,
       "tag": "0006_dev_key_approve_scope",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1785128689499,
+      "tag": "0007_stiff_tattoo",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1785129289589,
+      "tag": "0008_dev_key_audit_scope",
+      "breakpoints": true
     }
   ]
 }

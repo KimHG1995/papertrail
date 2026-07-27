@@ -5,6 +5,8 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { AuthGuard } from './auth/auth.guard.js';
 import { RateLimitGuard } from './auth/rate-limit.guard.js';
 import { AnalyticsModule } from './analytics/analytics.module.js';
+import { AuditModule } from './audit/audit.module.js';
+import { AuditInterceptor } from './audit/audit.interceptor.js';
 import { BatchesModule } from './batches/batches.module.js';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import { ResponseTransformInterceptor } from './common/interceptors/response-transform.interceptor.js';
@@ -36,6 +38,7 @@ import { WebhooksModule } from './webhooks/webhooks.module.js';
     DatabaseModule,
     StorageModule,
     AnalyticsModule,
+    AuditModule,
     HealthModule,
     TemplatesModule,
     DocumentsModule,
@@ -49,7 +52,9 @@ import { WebhooksModule } from './webhooks/webhooks.module.js';
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_GUARD, useClass: RateLimitGuard },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
+    // 인터셉터는 등록 순서대로 감싼다: 응답 정형화(바깥) → 감사(안쪽, 원본 데이터 관찰).
     { provide: APP_INTERCEPTOR, useClass: ResponseTransformInterceptor },
+    { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
   ],
 })
 export class AppModule {}
