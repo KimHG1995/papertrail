@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { RENDER_DLQ, RENDER_QUEUE } from '@papertrail/contracts';
 import { BatchService } from '../batch/batch.service.js';
 import { TenantConcurrencyService } from '../concurrency/tenant-concurrency.service.js';
+import { UsageService } from '../usage/usage.service.js';
 import { WebhookModule } from '../webhook/webhook.module.js';
 import { papermakeClientProvider } from './papermake.provider.js';
 import { RenderProcessor } from './render.processor.js';
@@ -14,6 +15,12 @@ import { RenderProcessor } from './render.processor.js';
     BullModule.registerQueue({ name: RENDER_DLQ }),
     WebhookModule,
   ],
-  providers: [papermakeClientProvider, TenantConcurrencyService, BatchService, RenderProcessor],
+  providers: [
+    papermakeClientProvider,
+    TenantConcurrencyService,
+    BatchService,
+    UsageService,
+    RenderProcessor,
+  ],
 })
 export class RenderModule {}

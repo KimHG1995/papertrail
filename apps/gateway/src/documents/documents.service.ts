@@ -23,6 +23,7 @@ import { DRIZZLE } from '../database/database.constants.js';
 import { PAPERMAKE_CLIENT } from '../papermake/papermake.constants.js';
 import { STORAGE } from '../storage/storage.constants.js';
 import { TemplatesService } from '../templates/templates.service.js';
+import { UsageService } from '../usage/usage.service.js';
 
 /** TemplatesService.resolveForRender 의 반환 타입(템플릿 해석 결과). */
 type ResolvedTemplate = Awaited<ReturnType<TemplatesService['resolveForRender']>>;
@@ -48,6 +49,7 @@ export class DocumentsService {
     @Inject(PAPERMAKE_CLIENT) private readonly papermake: PapermakeClient,
     @InjectQueue(RENDER_QUEUE) private readonly renderQueue: Queue<RenderJobData>,
     private readonly templates: TemplatesService,
+    private readonly usage: UsageService,
   ) {}
 
   /**
@@ -56,6 +58,8 @@ export class DocumentsService {
    * 멱등성 키가 있으면 같은 입력은 기존 접수를 반환하고 다른 입력은 409 로 처리한다.
    */
   async enqueue(tenantId: string, request: CreateDocumentRequest): Promise<CreateDocumentResponse> {
+    // 월 렌더 쿼터 초과면 429 로 빠르게 거부한다.
+    await this.usage.assertWithinQuota(tenantId);
     // 미등록 템플릿은 404, 스키마 위반은 422 로 여기서 실패한다.
     const resolved = await this.templates.resolveForRender(
       tenantId,

@@ -17,6 +17,7 @@ export const ERROR_CODES = {
     title: 'Unprocessable Entity',
   },
   RATE_LIMITED: { status: 429, slug: 'rate-limited', title: 'Too Many Requests' },
+  QUOTA_EXCEEDED: { status: 429, slug: 'quota-exceeded', title: 'Too Many Requests' },
   INTERNAL: { status: 500, slug: 'internal', title: 'Internal Server Error' },
   RENDER_UPSTREAM: { status: 502, slug: 'render-upstream', title: 'Bad Gateway' },
 } as const;

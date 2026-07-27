@@ -19,6 +19,7 @@ import { MetricsModule } from './metrics/metrics.module.js';
 import { StatsModule } from './stats/stats.module.js';
 import { StorageModule } from './storage/storage.module.js';
 import { TemplatesModule } from './templates/templates.module.js';
+import { UsageModule } from './usage/usage.module.js';
 import { WebhooksModule } from './webhooks/webhooks.module.js';
 
 /**
@@ -47,6 +48,7 @@ import { WebhooksModule } from './webhooks/webhooks.module.js';
     BatchesModule,
     WebhooksModule,
     StatsModule,
+    UsageModule,
   ],
   providers: [
     RateLimiterService,

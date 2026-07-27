@@ -10,6 +10,7 @@ import { eq } from 'drizzle-orm';
 import { ANALYTICS } from '../analytics/analytics.constants.js';
 import { BatchService } from '../batch/batch.service.js';
 import { TenantConcurrencyService } from '../concurrency/tenant-concurrency.service.js';
+import { UsageService } from '../usage/usage.service.js';
 import { DRIZZLE } from '../database/database.constants.js';
 import { STORAGE } from '../storage/storage.constants.js';
 import { WebhookDispatcher } from '../webhook/webhook-dispatcher.service.js';
@@ -38,6 +39,7 @@ export class RenderProcessor extends WorkerHost {
     private readonly concurrency: TenantConcurrencyService,
     private readonly webhooks: WebhookDispatcher,
     private readonly batch: BatchService,
+    private readonly usage: UsageService,
     @Inject(ANALYTICS) private readonly analytics: AnalyticsClient,
   ) {
     super();
@@ -95,6 +97,7 @@ export class RenderProcessor extends WorkerHost {
 
       // 완료 후처리(배치 집계 + 통지 + 이벤트 적재). 실패해도 렌더 성공을 되돌리지 않도록 예외를 삼킨다.
       try {
+        await this.usage.increment(data.tenantId, 'succeeded');
         if (data.batchId) {
           await this.batch.onDocumentSettled(data.batchId, 'succeeded');
         }
@@ -149,6 +152,7 @@ export class RenderProcessor extends WorkerHost {
     this.logger.error(`재시도 소진 → DLQ 이동: documentId=${job.data.documentId}`);
 
     try {
+      await this.usage.increment(job.data.tenantId, 'failed');
       if (job.data.batchId) {
         await this.batch.onDocumentSettled(job.data.batchId, 'failed');
       }

@@ -126,7 +126,8 @@
 | 409  | `IDEMPOTENCY_CONFLICT`     | `idempotency-conflict`   | 같은 멱등키 + 다른 본문                     |
 | 409  | `TEMPLATE_NOT_PUBLISHED`   | `template-not-published` | 렌더 대상 템플릿이 PUBLISHED 상태 아님      |
 | 422  | `SCHEMA_VALIDATION_FAILED` | `unprocessable-entity`   | 템플릿 JSON Schema 대비 렌더 데이터 부적합  |
-| 429  | `RATE_LIMITED`             | `rate-limited`           | 쿼터 초과 (`Retry-After` 동반)              |
+| 429  | `RATE_LIMITED`             | `rate-limited`           | 레이트 리밋 초과 (`Retry-After` 동반)       |
+| 429  | `QUOTA_EXCEEDED`           | `quota-exceeded`         | 월 렌더 쿼터 초과                           |
 | 500  | `INTERNAL`                 | `internal`               | 서버 오류                                   |
 | 502  | `RENDER_UPSTREAM`          | `render-upstream`        | Papermake 렌더 오류                         |
 

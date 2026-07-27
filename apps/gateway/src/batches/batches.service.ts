@@ -17,6 +17,7 @@ import { ProblemException } from '../common/exceptions/problem.exception.js';
 import { hashJson } from '../common/hash/canonical-hash.js';
 import { maskPreview } from '../common/pii-mask.js';
 import { DRIZZLE } from '../database/database.constants.js';
+import { UsageService } from '../usage/usage.service.js';
 import { STORAGE } from '../storage/storage.constants.js';
 import { TemplatesService } from '../templates/templates.service.js';
 
@@ -41,9 +42,12 @@ export class BatchesService {
     @Inject(STORAGE) private readonly storage: StorageClient,
     @InjectQueue(RENDER_QUEUE) private readonly renderQueue: Queue<RenderJobData>,
     private readonly templates: TemplatesService,
+    private readonly usage: UsageService,
   ) {}
 
   async create(tenantId: string, req: CreateBatchRequest): Promise<CreateBatchResponse> {
+    await this.usage.assertWithinQuota(tenantId);
+
     const rows = parse<Record<string, string>>(req.csv, {
       columns: true,
       skip_empty_lines: true,
