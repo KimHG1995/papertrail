@@ -23,6 +23,7 @@
     "@papertrail/db": "workspace:*",
     "@papertrail/papermake-client": "workspace:*",
     "@papertrail/storage": "workspace:*",
+    "@papertrail/telemetry": "workspace:*",
     "ajv": "^8.20.0",
     "bullmq": "^5.80.10",
     "csv-parse": "^7.0.1",

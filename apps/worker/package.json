@@ -23,6 +23,7 @@
     "@papertrail/db": "workspace:*",
     "@papertrail/papermake-client": "workspace:*",
     "@papertrail/storage": "workspace:*",
+    "@papertrail/telemetry": "workspace:*",
     "bullmq": "^5.80.10",
     "drizzle-orm": "^0.45.2",
     "ioredis": "^5.11.1",

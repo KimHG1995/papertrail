@@ -14,3 +14,4 @@ onlyBuiltDependencies:
 # msgpackr-extract(bullmq 의 선택적 네이티브 가속기)는 JS 폴백으로 동작하므로 빌드하지 않는다.
 allowBuilds:
   msgpackr-extract: false
+  protobufjs: false

@@ -5,6 +5,12 @@ import type { AnalyticsClient } from '@papertrail/analytics';
 import { type Database, type DocumentRow, document } from '@papertrail/db';
 import type { PapermakeClient } from '@papertrail/papermake-client';
 import { documentPdfKey, type StorageClient } from '@papertrail/storage';
+import {
+  context as otelContext,
+  getTracer,
+  propagation,
+  SpanStatusCode,
+} from '@papertrail/telemetry';
 import { DelayedError, Job, Queue } from 'bullmq';
 import { eq } from 'drizzle-orm';
 import { ANALYTICS } from '../analytics/analytics.constants.js';
@@ -56,6 +62,20 @@ export class RenderProcessor extends WorkerHost {
       throw new DelayedError();
     }
 
+    // 접수 시 주입된 트레이스 컨텍스트를 추출해 렌더 span 을 같은 트레이스의 자식으로 만든다.
+    const parentCtx = propagation.extract(otelContext.active(), data.trace ?? {});
+    const span = getTracer('papertrail-worker').startSpan(
+      'render.process',
+      {
+        attributes: {
+          'papertrail.document_id': data.documentId,
+          'papertrail.tenant_id': data.tenantId,
+          'papertrail.template': data.template,
+        },
+      },
+      parentCtx,
+    );
+
     try {
       const attempt = job.attemptsMade + 1;
       this.logger.log(`렌더 시작: documentId=${data.documentId}, attempt=${attempt}`);
@@ -71,6 +91,7 @@ export class RenderProcessor extends WorkerHost {
         data: data.data,
         recipient: data.recipient,
       });
+      span.setAttribute('papertrail.output_hash', result.outputHash);
 
       // 결과 PDF 를 S3/MinIO 에 저장하고 storageKey 를 증적에 남긴다(다운로드는 게이트웨이가 Signed URL 발급).
       const storageKey = documentPdfKey(data.tenantId, data.documentId, new Date());
@@ -112,7 +133,14 @@ export class RenderProcessor extends WorkerHost {
       } catch (error) {
         this.logger.error(`완료 후처리 실패(무시): documentId=${data.documentId}`, error);
       }
+    } catch (error) {
+      span.setStatus({
+        code: SpanStatusCode.ERROR,
+        message: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
     } finally {
+      span.end();
       await this.concurrency.release(data.tenantId, member);
     }
   }

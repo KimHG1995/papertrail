@@ -14,6 +14,12 @@ import { type JobsOptions, Queue } from 'bullmq';
 import { parse } from 'csv-parse/sync';
 import { DEFAULT_DOWNLOAD_TTL_SECONDS } from '../common/constants.js';
 import { ProblemException } from '../common/exceptions/problem.exception.js';
+import {
+  context as otelContext,
+  getTracer,
+  propagation,
+  trace as otelTrace,
+} from '@papertrail/telemetry';
 import { hashJson } from '../common/hash/canonical-hash.js';
 import { maskPreview } from '../common/pii-mask.js';
 import { DRIZZLE } from '../database/database.constants.js';
@@ -65,6 +71,13 @@ export class BatchesService {
     const sourceCsvKey = batchSourceKey(tenantId, batchId);
     await this.storage.put(sourceCsvKey, new TextEncoder().encode(req.csv), 'text/csv');
 
+    // 배치 span 하나에 모든 행 렌더를 자식으로 묶는다(같은 트레이스로 전파).
+    const span = getTracer('papertrail-gateway').startSpan('batch.enqueue', {
+      attributes: { 'papertrail.tenant_id': tenantId, 'papertrail.batch_id': batchId },
+    });
+    const traceCarrier: Record<string, string> = {};
+    propagation.inject(otelTrace.setSpan(otelContext.active(), span), traceCarrier);
+
     const docs: (typeof document.$inferInsert)[] = [];
     const jobs: { name: string; data: RenderJobData; opts: JobsOptions }[] = [];
     let failed = 0;
@@ -105,6 +118,7 @@ export class BatchesService {
             pdfStandard: req.pdfStandard,
             data: row,
             recipient: null,
+            trace: traceCarrier,
           },
           opts: {
             jobId: id,
@@ -137,6 +151,7 @@ export class BatchesService {
     for (const part of chunk(jobs, CHUNK_SIZE)) {
       await this.renderQueue.addBulk(part);
     }
+    span.end();
 
     this.logger.log(
       `배치 접수: id=${batchId}, total=${rows.length}, queued=${jobs.length}, failed=${failed}`,

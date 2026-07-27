@@ -1,12 +1,14 @@
 import 'reflect-metadata';
 import { Logger, RequestMethod } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { initTelemetry } from '@papertrail/telemetry';
 import { AppModule } from './app.module.js';
 import { requestContext } from './common/middleware/request-context.middleware.js';
 import { createMetricsMiddleware } from './metrics/metrics.middleware.js';
 import { MetricsService } from './metrics/metrics.service.js';
 
 async function bootstrap(): Promise<void> {
+  initTelemetry('papertrail-gateway');
   const app = await NestFactory.create(AppModule);
   app.use(requestContext);
   app.use(createMetricsMiddleware(app.get(MetricsService)));

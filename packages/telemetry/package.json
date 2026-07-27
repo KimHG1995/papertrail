@@ -1,0 +1,32 @@
+{
+  "name": "@papertrail/telemetry",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "PaperTrail 분산 트레이싱 부트스트랩 (OpenTelemetry NodeSDK, OTLP/console 익스포터)",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsgo -p tsconfig.json",
+    "typecheck": "tsgo --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.221.0",
+    "@opentelemetry/sdk-node": "^0.221.0",
+    "@opentelemetry/sdk-trace-node": "^2.10.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3"
+  }
+}

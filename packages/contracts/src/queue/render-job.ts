@@ -24,5 +24,7 @@ export const RenderJobData = z.object({
   pdfStandard: PdfStandard,
   data: JsonObject,
   recipient: JsonObject.nullable(),
+  /** W3C 트레이스 컨텍스트 캐리어(게이트웨이가 주입, 워커가 추출해 같은 트레이스로 이음). */
+  trace: z.record(z.string(), z.string()).optional(),
 });
 export type RenderJobData = z.infer<typeof RenderJobData>;

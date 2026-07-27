@@ -13,6 +13,12 @@ import {
 } from '@papertrail/contracts';
 import { type Database, type DocumentRow, document, newId } from '@papertrail/db';
 import type { PapermakeClient } from '@papertrail/papermake-client';
+import {
+  context as otelContext,
+  getTracer,
+  propagation,
+  trace as otelTrace,
+} from '@papertrail/telemetry';
 import type { StorageClient } from '@papertrail/storage';
 import { Queue } from 'bullmq';
 import { DEFAULT_DOWNLOAD_TTL_SECONDS } from '../common/constants.js';
@@ -118,6 +124,16 @@ export class DocumentsService {
     }
 
     // 렌더 작업을 큐에 적재한다. jobId=documentId 로 두어 중복 적재를 막는다.
+    // 접수 span 을 만들어 트레이스 컨텍스트를 job 에 주입하면 워커 렌더가 같은 트레이스로 이어진다.
+    const span = getTracer('papertrail-gateway').startSpan('document.enqueue', {
+      attributes: {
+        'papertrail.tenant_id': tenantId,
+        'papertrail.document_id': row.id,
+        'papertrail.template': request.template,
+      },
+    });
+    const traceCarrier: Record<string, string> = {};
+    propagation.inject(otelTrace.setSpan(otelContext.active(), span), traceCarrier);
     await this.renderQueue.add(
       RENDER_JOB,
       {
@@ -129,6 +145,7 @@ export class DocumentsService {
         pdfStandard: row.pdfStandard,
         data: request.document,
         recipient: request.recipient ?? null,
+        trace: traceCarrier,
       },
       {
         jobId: row.id,
@@ -138,6 +155,7 @@ export class DocumentsService {
         removeOnFail: false,
       },
     );
+    span.end();
 
     this.logger.log(`문서 접수 및 큐 적재: id=${row.id}, template=${request.template}`);
     return this.toCreateResponse(row);
