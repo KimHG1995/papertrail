@@ -20,6 +20,8 @@ export default tseslint.config(
       '**/coverage/**',
       // 빌드 tsconfig(src 한정)에 포함되지 않는 도구 설정 파일 — type-aware 린트 대상에서 제외
       '**/drizzle.config.ts',
+      // Admin(Next.js)은 자체 빌드/타입체크로 검증한다(React/Next 전용 규칙과 충돌 회피).
+      'apps/admin/**',
     ],
   },
 

@@ -55,7 +55,7 @@ PDF/A
 
 ### M3 — 운영/관측/보안 강화
 
-- [ ] Admin 콘솔(Next.js) 전체
+- [~] Admin 콘솔(Next.js) — 대시보드(사용량/통계), 템플릿 목록, 감사 로그(서버 렌더, 계약 타입 재사용) 완료, 나머지 관리 화면 예정
 - [~] PII 마스킹(maskedPreview) + 입력 원문 암호화 저장(AES-256-GCM, storeInput 옵트인 → 서버 단독 재현 검증) 완료, 보관정책(lifecycle) 예정
 - [x] 테넌트별 레이트 리밋(429 + Retry-After) + 월 렌더 쿼터(GET /v1/usage, 429 QUOTA_EXCEEDED) + 운영 감사 로그(변경 요청 자동 기록, GET /v1/audit)
 - [x] 재현 검증 도구(POST /v1/documents/{id}/verify, 동일 입력 재렌더 → outputHash 대조)
