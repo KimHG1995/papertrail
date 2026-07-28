@@ -19,9 +19,11 @@ import {
   propagation,
   trace as otelTrace,
 } from '@papertrail/telemetry';
-import type { StorageClient } from '@papertrail/storage';
+import { encryptedInputKey, type StorageClient } from '@papertrail/storage';
 import { Queue } from 'bullmq';
+import { eq } from 'drizzle-orm';
 import { DEFAULT_DOWNLOAD_TTL_SECONDS } from '../common/constants.js';
+import { CryptoService } from '../common/crypto.service.js';
 import { ProblemException } from '../common/exceptions/problem.exception.js';
 import { hashJson } from '../common/hash/canonical-hash.js';
 import { maskPreview } from '../common/pii-mask.js';
@@ -56,6 +58,7 @@ export class DocumentsService {
     @InjectQueue(RENDER_QUEUE) private readonly renderQueue: Queue<RenderJobData>,
     private readonly templates: TemplatesService,
     private readonly usage: UsageService,
+    private readonly crypto: CryptoService,
   ) {}
 
   /**
@@ -66,6 +69,12 @@ export class DocumentsService {
   async enqueue(tenantId: string, request: CreateDocumentRequest): Promise<CreateDocumentResponse> {
     // 월 렌더 쿼터 초과면 429 로 빠르게 거부한다.
     await this.usage.assertWithinQuota(tenantId);
+    if (request.storeInput && !this.crypto.enabled) {
+      throw new ProblemException(
+        'BAD_REQUEST',
+        '입력 저장(storeInput)이 요청됐지만 암호화 키가 설정되지 않았습니다.',
+      );
+    }
     // 미등록 템플릿은 404, 스키마 위반은 422 로 여기서 실패한다.
     const resolved = await this.templates.resolveForRender(
       tenantId,
@@ -123,6 +132,20 @@ export class DocumentsService {
       throw error;
     }
 
+    // 옵트인 시 입력 원문을 암호화해 S3 에 저장한다(서버 단독 재현 검증 가능).
+    if (request.storeInput) {
+      const inputKey = encryptedInputKey(tenantId, row.id, new Date());
+      const ciphertext = this.crypto.encrypt({
+        recipient: request.recipient ?? null,
+        document: request.document,
+      });
+      await this.storage.put(inputKey, ciphertext, 'application/octet-stream');
+      await this.db
+        .update(document)
+        .set({ inputObjectKey: inputKey })
+        .where(eq(document.id, row.id));
+    }
+
     // 렌더 작업을 큐에 적재한다. jobId=documentId 로 두어 중복 적재를 막는다.
     // 접수 span 을 만들어 트레이스 컨텍스트를 job 에 주입하면 워커 렌더가 같은 트레이스로 이어진다.
     const span = getTracer('papertrail-gateway').startSpan('document.enqueue', {
@@ -178,8 +201,8 @@ export class DocumentsService {
   }
 
   /**
-   * 재현성 검증. 원본 입력을 다시 제출받아 inputHash 를 재계산하고, 접수 시 고정된
-   * 템플릿, 동일 입력으로 재렌더해 outputHash 를 저장값과 대조한다.
+   * 재현성 검증. 검증할 입력을 확보(본문 제공 또는 저장된 암호화 입력 복호화)해 inputHash 를
+   * 재계산하고, 접수 시 고정된 템플릿과 동일 입력으로 재렌더해 outputHash 를 저장값과 대조한다.
    * 동일 입력이면 동일 outputHash 가 나와야 한다(재현성).
    */
   async verify(tenantId: string, id: string, req: VerifyDocumentRequest): Promise<VerifyResult> {
@@ -191,7 +214,8 @@ export class DocumentsService {
       );
     }
 
-    const actualInputHash = hashJson({ recipient: req.recipient ?? null, document: req.document });
+    const input = await this.resolveVerifyInput(row, req);
+    const actualInputHash = hashJson(input);
     // 접수 시 렌더에 쓰인 것과 동일한 참조로 재렌더한다(태그면 name:tag, 아니면 name@해시).
     const ref = row.templateTag
       ? `${row.templateName}:${row.templateTag}`
@@ -199,8 +223,8 @@ export class DocumentsService {
     const result = await this.papermake.render({
       template: ref,
       pdfStandard: row.pdfStandard,
-      data: req.document,
-      recipient: req.recipient ?? null,
+      data: input.document,
+      recipient: input.recipient,
     });
 
     const inputMatches = actualInputHash === row.inputHash;
@@ -211,6 +235,27 @@ export class DocumentsService {
       inputHash: { expected: row.inputHash, actual: actualInputHash, matches: inputMatches },
       outputHash: { expected: row.outputHash, actual: result.outputHash, matches: outputMatches },
     };
+  }
+
+  /** 검증에 쓸 입력을 확보한다: 본문 document 우선, 없으면 저장된 암호화 입력을 복호화한다. */
+  private async resolveVerifyInput(
+    row: DocumentRow,
+    req: VerifyDocumentRequest,
+  ): Promise<{ recipient: Record<string, unknown> | null; document: Record<string, unknown> }> {
+    if (req.document) {
+      return { recipient: req.recipient ?? null, document: req.document };
+    }
+    if (row.inputObjectKey) {
+      const bytes = await this.storage.get(row.inputObjectKey);
+      return this.crypto.decrypt(bytes) as {
+        recipient: Record<string, unknown> | null;
+        document: Record<string, unknown>;
+      };
+    }
+    throw new ProblemException(
+      'BAD_REQUEST',
+      '검증할 입력이 없습니다(본문 document 또는 저장된 암호화 입력이 필요).',
+    );
   }
 
   /** 테넌트 소유의 문서만 조회한다. 다른 테넌트의 문서는 존재 노출을 피해 404 로 처리한다. */

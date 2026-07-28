@@ -18,6 +18,8 @@ export interface S3StorageOptions {
 export interface StorageClient {
   /** 객체를 저장한다. */
   put(key: string, body: Uint8Array, contentType: string): Promise<void>;
+  /** 객체 바이트를 가져온다(서버 측 복호화 등에 사용). */
+  get(key: string): Promise<Uint8Array>;
   /** 지정 TTL 동안 유효한 다운로드용 Signed URL 을 만든다. */
   presignGet(key: string, expiresInSeconds: number): Promise<PresignedUrl>;
 }

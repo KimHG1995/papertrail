@@ -31,6 +31,14 @@ export class S3StorageClient implements StorageClient {
     );
   }
 
+  async get(key: string): Promise<Uint8Array> {
+    const res = await this.s3.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
+    if (!res.Body) {
+      throw new Error(`오브젝트 본문이 비어 있습니다: ${key}`);
+    }
+    return res.Body.transformToByteArray();
+  }
+
   async presignGet(key: string, expiresInSeconds: number): Promise<PresignedUrl> {
     const url = await getSignedUrl(
       this.s3,

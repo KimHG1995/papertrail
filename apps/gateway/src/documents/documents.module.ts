@@ -1,6 +1,7 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { RENDER_QUEUE } from '@papertrail/contracts';
+import { CryptoService } from '../common/crypto.service.js';
 import { papermakeClientProvider } from '../papermake/papermake.provider.js';
 import { TemplatesModule } from '../templates/templates.module.js';
 import { DocumentsController } from './documents.controller.js';
@@ -13,6 +14,6 @@ import { DocumentsService } from './documents.service.js';
 @Module({
   imports: [BullModule.registerQueue({ name: RENDER_QUEUE }), TemplatesModule],
   controllers: [DocumentsController],
-  providers: [DocumentsService, papermakeClientProvider],
+  providers: [DocumentsService, papermakeClientProvider, CryptoService],
 })
 export class DocumentsModule {}

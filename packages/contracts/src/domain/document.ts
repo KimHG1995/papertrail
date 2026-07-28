@@ -16,6 +16,8 @@ export const CreateDocumentRequest = z.object({
   recipient: JsonObject.optional(),
   document: JsonObject,
   callbackUrl: z.url('올바른 URL 형식이어야 합니다.').optional(),
+  /** true 면 입력 원문을 암호화해 저장한다(서버 단독 재현 검증 가능). 기본 false. */
+  storeInput: z.boolean().default(false),
 });
 export type CreateDocumentRequest = z.infer<typeof CreateDocumentRequest>;
 
@@ -59,10 +61,13 @@ export const DownloadInfo = z.object({
 });
 export type DownloadInfo = z.infer<typeof DownloadInfo>;
 
-/** POST /v1/documents/{id}/verify 요청 본문 (원본 입력을 다시 제출해 재현성 검증). */
+/**
+ * POST /v1/documents/{id}/verify 요청 본문.
+ * document 를 주면 그 입력으로 검증하고, 생략하면 저장된 암호화 입력(있을 때)으로 서버가 검증한다.
+ */
 export const VerifyDocumentRequest = z.object({
   recipient: JsonObject.optional(),
-  document: JsonObject,
+  document: JsonObject.optional(),
 });
 export type VerifyDocumentRequest = z.infer<typeof VerifyDocumentRequest>;
 

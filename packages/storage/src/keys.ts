@@ -22,3 +22,10 @@ export function batchReportKey(tenantId: string, batchId: string): string {
 export function previewKey(tenantId: string, contentHashHex: string): string {
   return `previews/${tenantId}/${contentHashHex}.pdf`;
 }
+
+/** 암호화된 렌더 입력 원문의 S3 키. docs/04-data-model.md §4.3. */
+export function encryptedInputKey(tenantId: string, documentId: string, at: Date): string {
+  const yyyy = at.getUTCFullYear();
+  const mm = String(at.getUTCMonth() + 1).padStart(2, '0');
+  return `encrypted-input/${tenantId}/${yyyy}/${mm}/${documentId}.json.enc`;
+}
