@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { HashRef, JsonObject } from './common.js';
+import { HashRef, JsonObject, PdfStandard } from './common.js';
 
 /** 템플릿 승인 워크플로 상태. docs/03-api.md §3.4 */
 export const TemplateState = z.enum(['DRAFT', 'REVIEWING', 'APPROVED', 'PUBLISHED', 'DEPRECATED']);
@@ -77,3 +77,23 @@ export const TemplateStateChanged = z.object({
   state: TemplateState,
 });
 export type TemplateStateChanged = z.infer<typeof TemplateStateChanged>;
+
+/**
+ * POST /v1/templates/{name}/preview 요청 본문.
+ * 특정 버전(manifestHash)을 큐/발행 게이트를 우회해 동기 렌더한다(작성자 미리보기).
+ */
+export const PreviewTemplateRequest = z.object({
+  manifestHash: HashRef,
+  recipient: JsonObject.optional(),
+  data: JsonObject,
+  pdfStandard: PdfStandard.default('pdf-1.7'),
+});
+export type PreviewTemplateRequest = z.infer<typeof PreviewTemplateRequest>;
+
+/** POST /v1/templates/{name}/preview 응답 data (임시 Signed URL). */
+export const PreviewResult = z.object({
+  url: z.url(),
+  expiresAt: z.iso.datetime(),
+  outputHash: HashRef,
+});
+export type PreviewResult = z.infer<typeof PreviewResult>;

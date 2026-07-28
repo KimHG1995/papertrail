@@ -17,3 +17,8 @@ export function batchSourceKey(tenantId: string, batchId: string): string {
 export function batchReportKey(tenantId: string, batchId: string): string {
   return `batches/${tenantId}/${batchId}/report.csv`;
 }
+
+/** 미리보기 PDF 의 S3 키(콘텐츠 주소 기반, 동일 결과는 dedup). */
+export function previewKey(tenantId: string, contentHashHex: string): string {
+  return `previews/${tenantId}/${contentHashHex}.pdf`;
+}

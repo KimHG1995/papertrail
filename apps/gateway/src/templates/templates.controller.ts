@@ -1,8 +1,10 @@
 import { Body, Controller, Get, HttpCode, Param, Post, Query } from '@nestjs/common';
 import {
+  PreviewTemplateRequest,
   RegisterTemplateRequest,
   TemplateName,
   TransitionStateRequest,
+  type PreviewResult,
   type TemplateListItem,
   type TemplatePublished,
   type TemplateStateChanged,
@@ -43,6 +45,17 @@ export class TemplatesController {
     @Param('name', new ZodValidationPipe(TemplateName)) name: string,
   ): Promise<TemplateTags> {
     return this.templates.getTags(tenantId, name);
+  }
+
+  /** 미리보기. 특정 버전을 동기 렌더해 임시 Signed URL 을 반환한다(발행 전 확인용). */
+  @Post(':name/preview')
+  @RequiredScopes('templates:write')
+  preview(
+    @CurrentTenant() tenantId: string,
+    @Param('name', new ZodValidationPipe(TemplateName)) name: string,
+    @Body(new ZodValidationPipe(PreviewTemplateRequest)) body: PreviewTemplateRequest,
+  ): Promise<PreviewResult> {
+    return this.templates.preview(tenantId, name, body);
   }
 
   /** 상태 전이(승인 워크플로). 승인자 권한(templates:approve)이 필요하다. */

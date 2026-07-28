@@ -50,7 +50,7 @@ PDF/A
 - [x] Webhook 서명 발송 + 재시도(HMAC-SHA256, 엔드포인트 등록, delivery 추적)
 - [ ] PDF/A-2b / a-3b 옵션
 - [x] 템플릿 승인 워크플로(DRAFT→REVIEWING→APPROVED→PUBLISHED→DEPRECATED, PUBLISHED 만 렌더) + 스코프 기반 승인자 권한(templates:approve). 콘솔 사용자 RBAC 는 M3.
-- [ ] 버전 diff, 미리보기
+- [~] 미리보기(POST /v1/templates/{name}/preview, 큐/발행 게이트 우회 동기 렌더 → Signed URL) 완료, 버전 diff 예정
 - [x] ClickHouse 이벤트 적재 + 통계 API(render_event 적재, /v1/stats/overview)
 
 ### M3 — 운영/관측/보안 강화

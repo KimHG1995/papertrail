@@ -2,6 +2,8 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import type {
   FieldError,
   HashRef,
+  PreviewResult,
+  PreviewTemplateRequest,
   RegisterTemplateRequest,
   TemplateListItem,
   TemplatePublished,
@@ -11,6 +13,7 @@ import type {
 } from '@papertrail/contracts';
 import { type Database, newId, template, templateTag, templateVersion } from '@papertrail/db';
 import type { PapermakeClient } from '@papertrail/papermake-client';
+import { previewKey, type StorageClient } from '@papertrail/storage';
 import { and, desc, eq } from 'drizzle-orm';
 import {
   ProblemException,
@@ -19,7 +22,11 @@ import {
 import { hashJson } from '../common/hash/canonical-hash.js';
 import { DRIZZLE } from '../database/database.constants.js';
 import { PAPERMAKE_CLIENT } from '../papermake/papermake.constants.js';
+import { STORAGE } from '../storage/storage.constants.js';
 import { SchemaValidatorService } from './schema-validator.service.js';
+
+/** 미리보기 Signed URL 유효기간(초). */
+const PREVIEW_TTL_SECONDS = 300;
 
 interface ResolvedTemplate {
   templateName: string;
@@ -61,6 +68,7 @@ export class TemplatesService {
   constructor(
     @Inject(DRIZZLE) private readonly db: Database,
     @Inject(PAPERMAKE_CLIENT) private readonly papermake: PapermakeClient,
+    @Inject(STORAGE) private readonly storage: StorageClient,
     private readonly validator: SchemaValidatorService,
   ) {}
 
@@ -159,6 +167,42 @@ export class TemplatesService {
       .set({ state: to })
       .where(eq(templateVersion.id, version.id));
     return { name, manifestHash, state: to };
+  }
+
+  /**
+   * 특정 버전을 큐/발행 게이트를 우회해 동기 렌더한다(작성자 미리보기).
+   * DRAFT 등 미발행 버전도 미리 볼 수 있다. 스키마가 있으면 입력을 검증한다.
+   */
+  async preview(
+    tenantId: string,
+    name: string,
+    req: PreviewTemplateRequest,
+  ): Promise<PreviewResult> {
+    const tmpl = await this.findTemplate(tenantId, name);
+    const version = await this.db.query.templateVersion.findFirst({
+      where: (v, { and: a, eq: e }) =>
+        a(e(v.templateId, tmpl.id), e(v.manifestHash, req.manifestHash)),
+    });
+    if (!version) {
+      throw new NotFoundException(`템플릿 버전을 찾을 수 없습니다: ${name} ${req.manifestHash}`);
+    }
+    if (version.schema && version.schemaHash) {
+      const errors = this.validator.validate(version.schemaHash, version.schema, req.data);
+      if (errors.length > 0) {
+        throw new SchemaValidationException(errors);
+      }
+    }
+
+    const result = await this.papermake.render({
+      template: `${name}@${req.manifestHash}`,
+      pdfStandard: req.pdfStandard,
+      data: req.data,
+      recipient: req.recipient ?? null,
+    });
+    const key = previewKey(tenantId, result.outputHash.replace('sha256:', ''));
+    await this.storage.put(key, result.pdf, 'application/pdf');
+    const { url, expiresAt } = await this.storage.presignGet(key, PREVIEW_TTL_SECONDS);
+    return { url, expiresAt: expiresAt.toISOString(), outputHash: result.outputHash };
   }
 
   /** 테넌트의 템플릿 목록(최신 태그 포함). */
