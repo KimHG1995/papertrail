@@ -38,3 +38,16 @@ export const BatchProgress = z.object({
   reportUrl: z.url().nullable(),
 });
 export type BatchProgress = z.infer<typeof BatchProgress>;
+
+/** GET /v1/batches 목록 원소(요약). */
+export const BatchListItem = z.object({
+  batchId: z.string(),
+  templateRef: z.string(),
+  status: BatchStatus,
+  total: z.number().int().nonnegative(),
+  succeeded: z.number().int().nonnegative(),
+  failed: z.number().int().nonnegative(),
+  createdAt: z.iso.datetime(),
+  completedAt: z.iso.datetime().nullable(),
+});
+export type BatchListItem = z.infer<typeof BatchListItem>;

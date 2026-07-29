@@ -4,6 +4,8 @@ import {
   type CreateDocumentRequest,
   type CreateDocumentResponse,
   type DocumentDetail,
+  type DocumentListItem,
+  type DocumentStatus,
   type DownloadInfo,
   RENDER_JOB,
   RENDER_QUEUE,
@@ -188,6 +190,34 @@ export class DocumentsService {
   async getDetail(tenantId: string, id: string): Promise<DocumentDetail> {
     const row = await this.findByIdForTenant(tenantId, id);
     return this.toDetail(row);
+  }
+
+  /** 문서 목록(테넌트 격리, 최신순). status 로 필터, limit 은 1~200 로 클램프. */
+  async list(
+    tenantId: string,
+    opts: { limit?: number; status?: DocumentStatus },
+  ): Promise<DocumentListItem[]> {
+    const capped = Math.min(Math.max(opts.limit ?? 50, 1), 200);
+    const rows = await this.db.query.document.findMany({
+      where: (d, { and, eq: e }) =>
+        opts.status
+          ? and(e(d.tenantId, tenantId), e(d.status, opts.status))
+          : e(d.tenantId, tenantId),
+      orderBy: (d, { desc }) => desc(d.requestedAt),
+      limit: capped,
+    });
+    return rows.map((r) => ({
+      documentId: r.id,
+      status: r.status,
+      templateName: r.templateName,
+      templateTag: r.templateTag,
+      pdfStandard: r.pdfStandard,
+      outputHash: r.outputHash,
+      batchId: r.batchId,
+      requestedAt: r.requestedAt.toISOString(),
+      completedAt: r.completedAt ? r.completedAt.toISOString() : null,
+      durationMs: r.durationMs,
+    }));
   }
 
   /** 다운로드용 Signed URL 정보를 발급한다(테넌트 격리, 결과 PDF 가 있어야 한다). */

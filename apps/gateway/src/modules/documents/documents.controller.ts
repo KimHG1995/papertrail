@@ -1,9 +1,11 @@
 import { Body, Controller, Get, HttpCode, Param, Post, Query, Req, Res } from '@nestjs/common';
 import {
   CreateDocumentRequest,
+  DocumentStatus,
   VerifyDocumentRequest,
   type CreateDocumentResponse,
   type DocumentDetail,
+  type DocumentListItem,
   type VerifyResult,
 } from '@papertrail/contracts';
 import type { Request, Response } from 'express';
@@ -45,6 +47,20 @@ export class DocumentsController {
     body: CreateDocumentRequest,
   ): Promise<CreateDocumentResponse> {
     return this.documents.enqueue(tenantId, body);
+  }
+
+  @Get()
+  @RequiredScopes('documents:read')
+  list(
+    @CurrentTenant() tenantId: string,
+    @Query('limit') limit: string | undefined,
+    @Query('status') status: string | undefined,
+  ): Promise<DocumentListItem[]> {
+    const parsedStatus = status ? DocumentStatus.safeParse(status) : undefined;
+    return this.documents.list(tenantId, {
+      limit: limit ? Number(limit) : undefined,
+      status: parsedStatus?.success ? parsedStatus.data : undefined,
+    });
   }
 
   @Get(':id')

@@ -1,6 +1,7 @@
-import { Body, Controller, Get, HttpCode, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Post, Query } from '@nestjs/common';
 import {
   CreateBatchRequest,
+  type BatchListItem,
   type BatchProgress,
   type CreateBatchResponse,
 } from '@papertrail/contracts';
@@ -22,6 +23,15 @@ export class BatchesController {
     @Body(new ZodValidationPipe(CreateBatchRequest)) body: CreateBatchRequest,
   ): Promise<CreateBatchResponse> {
     return this.batches.create(tenantId, body);
+  }
+
+  @Get()
+  @RequiredScopes('documents:read')
+  list(
+    @CurrentTenant() tenantId: string,
+    @Query('limit') limit: string | undefined,
+  ): Promise<BatchListItem[]> {
+    return this.batches.list(tenantId, limit ? Number(limit) : undefined);
   }
 
   @Get(':id')

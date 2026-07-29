@@ -335,3 +335,25 @@ button:disabled {
   color: #fff;
   text-decoration: none;
 }
+
+/* --- 문서/배치 상태 배지 --- */
+.badge.queued {
+  color: var(--muted);
+}
+
+.badge.rendering,
+.badge.running {
+  color: #d29922;
+  border-color: #d29922;
+}
+
+.badge.succeeded,
+.badge.completed {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+
+.badge.failed {
+  color: var(--fail);
+  border-color: var(--fail);
+}

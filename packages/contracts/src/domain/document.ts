@@ -53,6 +53,21 @@ export const DocumentDetail = z.object({
 });
 export type DocumentDetail = z.infer<typeof DocumentDetail>;
 
+/** GET /v1/documents 목록 원소(요약). */
+export const DocumentListItem = z.object({
+  documentId: z.string(),
+  status: DocumentStatus,
+  templateName: z.string(),
+  templateTag: z.string().nullable(),
+  pdfStandard: PdfStandard,
+  outputHash: HashRef.nullable(),
+  batchId: z.string().nullable(),
+  requestedAt: z.iso.datetime(),
+  completedAt: z.iso.datetime().nullable(),
+  durationMs: z.number().int().nonnegative().nullable(),
+});
+export type DocumentListItem = z.infer<typeof DocumentListItem>;
+
 /** GET /v1/documents/{id}/download?format=json 응답 data. */
 export const DownloadInfo = z.object({
   url: z.url(),

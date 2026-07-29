@@ -1,6 +1,7 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import {
+  type BatchListItem,
   type BatchProgress,
   type CreateBatchRequest,
   type CreateBatchResponse,
@@ -181,5 +182,25 @@ export class BatchesService {
       progress,
       reportUrl,
     };
+  }
+
+  /** 배치 목록(테넌트 격리, 최신순). limit 은 1~200 로 클램프. */
+  async list(tenantId: string, limit?: number): Promise<BatchListItem[]> {
+    const capped = Math.min(Math.max(limit ?? 50, 1), 200);
+    const rows = await this.db.query.batch.findMany({
+      where: (b, { eq: e }) => e(b.tenantId, tenantId),
+      orderBy: (b, { desc }) => desc(b.createdAt),
+      limit: capped,
+    });
+    return rows.map((r) => ({
+      batchId: r.id,
+      templateRef: r.templateRef,
+      status: r.status,
+      total: r.total,
+      succeeded: r.succeeded,
+      failed: r.failed,
+      createdAt: r.createdAt.toISOString(),
+      completedAt: r.completedAt ? r.completedAt.toISOString() : null,
+    }));
   }
 }

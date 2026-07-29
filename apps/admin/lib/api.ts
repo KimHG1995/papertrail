@@ -1,8 +1,10 @@
 import type {
   AuditEntry,
+  BatchListItem,
   CreateDocumentRequest,
   CreateDocumentResponse,
   DocumentDetail,
+  DocumentListItem,
   RegisterTemplateRequest,
   StatsOverview,
   TemplateListItem,
@@ -102,4 +104,21 @@ export function getDocument(id: string): Promise<DocumentDetail> {
 /** 재현성 검증(동일 입력 재렌더 후 해시 대조). 본문 없이 호출하면 저장 입력 사용. */
 export function verifyDocument(id: string): Promise<VerifyResult> {
   return apiPost<VerifyResult>(`/v1/documents/${encodeURIComponent(id)}/verify`, {});
+}
+
+/** 문서 목록(최신순). status 로 필터. */
+export function listDocuments(params?: {
+  limit?: number;
+  status?: string;
+}): Promise<DocumentListItem[]> {
+  const q = new URLSearchParams();
+  if (params?.limit) q.set('limit', String(params.limit));
+  if (params?.status) q.set('status', params.status);
+  const qs = q.toString();
+  return apiGet<DocumentListItem[]>(`/v1/documents${qs ? `?${qs}` : ''}`);
+}
+
+/** 배치 목록(최신순). */
+export function listBatches(limit?: number): Promise<BatchListItem[]> {
+  return apiGet<BatchListItem[]>(`/v1/batches${limit ? `?limit=${limit}` : ''}`);
 }
