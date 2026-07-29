@@ -254,6 +254,7 @@ Papermake 는 렌더 데이터를 Typst 전역 `#data` 로 주입합니다(`#dat
 
 - 서버 렌더 대시보드(사용량, 통계), 감사 로그 조회
 - 템플릿 등록 폼 + 승인 워크플로 UI(서버 액션 기반, API Key는 서버에만 보관)
+- 문서 렌더 콘솔: 변수값 입력 → 실제 파이프라인 렌더 → PDF 임베드/다운로드 + 증적 해시, 재현성 검증, PII 마스킹 확인(라우트 핸들러 프록시로 API Key 서버 보관)
 
 ---
 
@@ -263,7 +264,8 @@ Papermake 는 렌더 데이터를 Typst 전역 `#data` 로 주입합니다(`#dat
 - [ ] CI 파이프라인: `pnpm run check` + E2E를 GitHub Actions에서 실행
 - [x] Papermake 데이터 바인딩 예제 템플릿(입력 JSON을 Typst `#data` 로 주입) — [examples/templates](examples/templates/), `scripts/demo-flow.sh`
 - [ ] 한글(CJK) 폰트 설정: Papermake 이미지에 폰트 마운트(현재 예제는 영문)
-- [ ] Admin: 템플릿 미리보기 연동, 문서/배치 조회 화면, 로그인/권한
+- [x] Admin: 문서 렌더/다운로드 콘솔(변수값 입력 → 실제 렌더 → 증적/재현성 확인)
+- [ ] Admin: 문서/배치 조회(목록) 화면, 로그인/권한
 - [ ] 운영 배포(로컬 compose → 실제 환경), 시크릿 관리, 관측성 수집기(OTLP) 연결
 
 ---

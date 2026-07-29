@@ -236,8 +236,24 @@ export class TemplatesService {
       }
     }
 
+    // Papermake 는 name:tag 참조만 렌더하므로(고정 해시 참조 미지원) 이 버전을 가리키는
+    // 태그를 찾아 그 태그로 렌더한다. 태그가 없으면(태그가 다른 버전으로 이동) 미리보기 불가.
+    const [tagRow] = await this.db
+      .select({ tag: templateTag.tag })
+      .from(templateTag)
+      .where(
+        and(eq(templateTag.templateId, tmpl.id), eq(templateTag.manifestHash, req.manifestHash)),
+      )
+      .limit(1);
+    if (!tagRow) {
+      throw new ProblemException(
+        'BAD_REQUEST',
+        '이 버전을 가리키는 태그가 없어 미리보기를 렌더할 수 없습니다.',
+      );
+    }
+
     const result = await this.renderOrMap({
-      template: `${name}@${req.manifestHash}`,
+      template: `${name}:${tagRow.tag}`,
       pdfStandard: req.pdfStandard,
       data: req.data,
       recipient: req.recipient ?? null,

@@ -1,5 +1,8 @@
 import type {
   AuditEntry,
+  CreateDocumentRequest,
+  CreateDocumentResponse,
+  DocumentDetail,
   RegisterTemplateRequest,
   StatsOverview,
   TemplateListItem,
@@ -8,6 +11,7 @@ import type {
   TemplateTags,
   TransitionStateRequest,
   UsageSummary,
+  VerifyResult,
 } from '@papertrail/contracts';
 
 // 로컬 값이 기본: .env 없이도 로컬 게이트웨이 + 시드된 dev API Key 로 동작한다.
@@ -83,4 +87,19 @@ export function transitionTemplate(
   body: TransitionStateRequest,
 ): Promise<TemplateStateChanged> {
   return apiPost<TemplateStateChanged>(`/v1/templates/${encodeURIComponent(name)}/state`, body);
+}
+
+/** 문서 생성(실제 파이프라인: 큐 → 워커 렌더). 202 로 documentId 를 돌려준다. */
+export function createDocument(body: CreateDocumentRequest): Promise<CreateDocumentResponse> {
+  return apiPost<CreateDocumentResponse>('/v1/documents', body);
+}
+
+/** 문서 증적/상태 조회(SUCCEEDED 면 downloadUrl 포함). */
+export function getDocument(id: string): Promise<DocumentDetail> {
+  return apiGet<DocumentDetail>(`/v1/documents/${encodeURIComponent(id)}`);
+}
+
+/** 재현성 검증(동일 입력 재렌더 후 해시 대조). 본문 없이 호출하면 저장 입력 사용. */
+export function verifyDocument(id: string): Promise<VerifyResult> {
+  return apiPost<VerifyResult>(`/v1/documents/${encodeURIComponent(id)}/verify`, {});
 }
