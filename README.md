@@ -166,6 +166,36 @@ curl -X POST http://localhost:3000/v1/documents \
 - **Papermake**는 공개 이미지 [`ghcr.io/rkstgr/papermake`](https://github.com/rkstgr/papermake)를 사용하므로 소스 빌드가 필요 없습니다. 태그는 `PAPERMAKE_IMAGE_TAG`(기본 `v0.3.0`)로 고정할 수 있습니다.
 - 렌더 드라이버는 `PAPERMAKE_DRIVER`로 고릅니다. `http`(기본, 실제 Papermake 호출)와 `fake`(Papermake 없이 결정적 가짜 렌더로 파이프라인만 검증)가 있습니다. Papermake를 띄우지 않고 가볍게 돌리려면 `PAPERMAKE_DRIVER=fake`로 두세요.
 
+### 접속 정보 (DB, 스토리지 연동)
+
+DB 클라이언트나 스토리지 콘솔을 붙일 때 쓰는 로컬 기본 계정과 접속 값입니다. `docker compose up -d` 후 바로 유효하며, 모두 `.env`로 오버라이드할 수 있습니다.
+
+| 대상                        | 접속                       | 계정 (ID / PW)                       | DB / 버킷                          |
+| --------------------------- | -------------------------- | ------------------------------------ | ---------------------------------- |
+| PostgreSQL                  | `localhost:5432`           | `papertrail` / `papertrail`          | db `papertrail`                    |
+| Redis                       | `localhost:6379`           | (인증 없음)                          | —                                  |
+| MinIO 콘솔                  | `http://localhost:9001`    | `minioadmin` / `minioadmin`          | 버킷 `papertrail`, `papermake`     |
+| MinIO S3 API                | `localhost:9000`           | `minioadmin` / `minioadmin`          | 버킷 `papertrail`, `papermake`     |
+| ClickHouse (HTTP, JDBC/GUI) | `localhost:8123`           | `papermake` / `papermake123`         | db `papertrail`(분석), `papermake` |
+| ClickHouse (Native, CLI)    | `localhost:9009`           | `papermake` / `papermake123`         | db `papertrail`, `papermake`       |
+| Gateway API                 | `http://localhost:3000/v1` | Bearer `pt_dev_papertrail_local_key` | 테넌트 `tenant_dev`                |
+| Admin 콘솔                  | `http://localhost:3001`    | (게이트웨이 키는 서버 보관)          | —                                  |
+
+연결 문자열:
+
+```bash
+# PostgreSQL (TablePlus, DBeaver, pgAdmin)
+postgres://papertrail:papertrail@localhost:5432/papertrail
+
+# Redis (RedisInsight 등)
+redis://localhost:6379
+
+# ClickHouse HTTP (DBeaver, DataGrip 등 JDBC/GUI 드라이버)
+jdbc:clickhouse://localhost:8123   # user=papermake  pass=papermake123  db=papertrail
+```
+
+> **ClickHouse 포트 주의:** DBeaver, DataGrip 등 JDBC/GUI 도구는 **HTTP 포트 8123**으로 붙습니다. 네이티브 TCP `9009`(호스트에서 MinIO가 9000을 점유해 재매핑됨)는 `clickhouse-client` CLI 전용이라, GUI에서 9009로 넣으면 `transport error: 400`이 납니다.
+
 ---
 
 ## 참고로 알아둘 점
