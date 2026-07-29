@@ -10,8 +10,10 @@ import type {
   UsageSummary,
 } from '@papertrail/contracts';
 
+// 로컬 값이 기본: .env 없이도 로컬 게이트웨이 + 시드된 dev API Key 로 동작한다.
+// 운영/커스텀은 GATEWAY_URL, ADMIN_API_KEY 로 오버라이드(루트 .env 는 next.config 에서 로드).
 const GATEWAY_URL = process.env.GATEWAY_URL ?? 'http://localhost:3000';
-const API_KEY = process.env.ADMIN_API_KEY ?? '';
+const API_KEY = process.env.ADMIN_API_KEY ?? 'pt_dev_papertrail_local_key';
 
 /** 게이트웨이 표준 응답 {success,data,meta} 에서 data 만 꺼내 반환한다(서버 전용). */
 async function apiGet<T>(path: string): Promise<T> {

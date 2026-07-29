@@ -9,8 +9,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="ko">
-      <body>
+    <html lang="ko" suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <header className="topbar">
           <span className="brand">PaperTrail</span>
           <nav>
