@@ -12,11 +12,11 @@ import { STORAGE } from './storage.constants.js';
       inject: [ConfigService],
       useFactory: (config: ConfigService): StorageClient =>
         new S3StorageClient({
-          endpoint: config.getOrThrow<string>('S3_ENDPOINT'),
+          endpoint: config.get<string>('S3_ENDPOINT', 'http://localhost:9000'),
           region: config.get<string>('S3_REGION', 'us-east-1'),
-          bucket: config.getOrThrow<string>('S3_BUCKET'),
-          accessKeyId: config.getOrThrow<string>('S3_ACCESS_KEY'),
-          secretAccessKey: config.getOrThrow<string>('S3_SECRET_KEY'),
+          bucket: config.get<string>('S3_BUCKET', 'papertrail'),
+          accessKeyId: config.get<string>('S3_ACCESS_KEY', 'minioadmin'),
+          secretAccessKey: config.get<string>('S3_SECRET_KEY', 'minioadmin'),
           forcePathStyle: true,
         }),
     },

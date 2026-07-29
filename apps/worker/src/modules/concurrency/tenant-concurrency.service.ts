@@ -41,7 +41,7 @@ export class TenantConcurrencyService implements OnModuleDestroy {
   private readonly redis: SlotRedis;
 
   constructor(config: ConfigService) {
-    this.redis = new Redis(config.getOrThrow<string>('REDIS_URL')) as SlotRedis;
+    this.redis = new Redis(config.get<string>('REDIS_URL', 'redis://localhost:6379')) as SlotRedis;
     this.redis.defineCommand('acquireSlot', { numberOfKeys: 1, lua: ACQUIRE_LUA });
   }
 

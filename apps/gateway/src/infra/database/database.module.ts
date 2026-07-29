@@ -14,7 +14,12 @@ import { DRIZZLE } from './database.constants.js';
       provide: DRIZZLE,
       inject: [ConfigService],
       useFactory: (config: ConfigService): Database =>
-        createDatabase(config.getOrThrow<string>('DATABASE_URL')),
+        createDatabase(
+          config.get<string>(
+            'DATABASE_URL',
+            'postgres://papertrail:papertrail@localhost:5432/papertrail',
+          ),
+        ),
     },
   ],
   exports: [DRIZZLE],

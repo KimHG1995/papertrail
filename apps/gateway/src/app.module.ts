@@ -30,11 +30,13 @@ import { WebhooksModule } from './modules/webhooks/webhooks.module.js';
  */
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    // .env 없이도 로컬 도커 값(각 설정의 기본값)으로 동작한다. 루트 .env 가 있으면
+    // cwd 가 apps/gateway(예: pnpm --filter ... dev)든 모노레포 루트든 덮어쓴다.
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: ['.env', '../../.env'] }),
     BullModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        connection: redisConnection(config.getOrThrow<string>('REDIS_URL')),
+        connection: redisConnection(config.get<string>('REDIS_URL', 'redis://localhost:6379')),
       }),
     }),
     DatabaseModule,

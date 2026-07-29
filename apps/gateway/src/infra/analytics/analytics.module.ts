@@ -12,10 +12,10 @@ import { ANALYTICS } from './analytics.constants.js';
       inject: [ConfigService],
       useFactory: (config: ConfigService): AnalyticsClient =>
         new ClickHouseAnalyticsClient({
-          url: config.getOrThrow<string>('CLICKHOUSE_URL'),
+          url: config.get<string>('CLICKHOUSE_URL', 'http://localhost:8123'),
           database: config.get<string>('CLICKHOUSE_DATABASE', 'papertrail'),
-          username: config.getOrThrow<string>('CLICKHOUSE_USER'),
-          password: config.getOrThrow<string>('CLICKHOUSE_PASSWORD'),
+          username: config.get<string>('CLICKHOUSE_USER', 'papermake'),
+          password: config.get<string>('CLICKHOUSE_PASSWORD', 'papermake123'),
         }),
     },
   ],

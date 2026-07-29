@@ -29,7 +29,7 @@ export class RateLimiterService implements OnModuleDestroy {
   private readonly redis: RateRedis;
 
   constructor(config: ConfigService) {
-    this.redis = new Redis(config.getOrThrow<string>('REDIS_URL')) as RateRedis;
+    this.redis = new Redis(config.get<string>('REDIS_URL', 'redis://localhost:6379')) as RateRedis;
     this.redis.defineCommand('rateHit', { numberOfKeys: 1, lua: HIT_LUA });
   }
 
