@@ -122,6 +122,11 @@ services:
       CLICKHOUSE_USER: ${CLICKHOUSE_USER:-papermake}
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-papermake123}
       RUST_LOG: 'papermake_server=info'
+    # 한글(CJK) 폰트를 FONTS_DIR(/fonts)에 추가로 마운트한다(이미지 기본 폰트는 유지).
+    # 템플릿에서 #set text(font: "NanumGothic") 으로 사용한다.
+    volumes:
+      - ./infra/fonts/NanumGothic-Regular.ttf:/fonts/NanumGothic-Regular.ttf:ro
+      - ./infra/fonts/NanumGothic-Bold.ttf:/fonts/NanumGothic-Bold.ttf:ro
     ports:
       - '${PAPERMAKE_PORT:-3100}:3000'
     depends_on:

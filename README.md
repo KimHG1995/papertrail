@@ -213,6 +213,8 @@ TEMPLATE_TAG=v2 ./scripts/demo-flow.sh        # 다른 태그로 등록
 
 Papermake 는 렌더 데이터를 Typst 전역 `#data` 로 주입합니다(`#data.recipient.name` 처럼 접근). 예제 템플릿은 중첩 필드, 배열 반복(table), 조건 분기를 모두 사용합니다.
 
+한글 폰트는 [`infra/fonts`](infra/fonts/)의 NanumGothic(OFL)을 docker-compose 에서 Papermake 의 `FONTS_DIR`(`/fonts`)에 마운트해 제공합니다. 템플릿에서 `#set text(font: "NanumGothic")` 으로 사용하며, 예제 통지서가 한글로 렌더됩니다. 다른 폰트를 쓰려면 `infra/fonts` 에 넣고 compose 볼륨에 추가하세요.
+
 ---
 
 ## 참고로 알아둘 점
@@ -264,7 +266,7 @@ Papermake 는 렌더 데이터를 Typst 전역 `#data` 로 주입합니다(`#dat
 - [ ] 자동화 테스트 스위트: 라이브 E2E 스크립트를 리포지토리 안(vitest 또는 `scripts/e2e`)으로 편입해 `pnpm test`로 상시 실행
 - [ ] CI 파이프라인: `pnpm run check` + E2E를 GitHub Actions에서 실행
 - [x] Papermake 데이터 바인딩 예제 템플릿(입력 JSON을 Typst `#data` 로 주입) — [examples/templates](examples/templates/), `scripts/demo-flow.sh`
-- [ ] 한글(CJK) 폰트 설정: Papermake 이미지에 폰트 마운트(현재 예제는 영문)
+- [x] 한글(CJK) 폰트 설정: NanumGothic(OFL)을 Papermake `/fonts` 에 마운트, 예제 통지서 한글 렌더
 - [x] Admin: 문서 렌더/다운로드 콘솔(변수값 입력 → 실제 렌더 → 증적/재현성 확인)
 - [x] Admin: 문서/배치 목록 조회 화면(GET /v1/documents, /v1/batches)
 - [ ] Admin: 로그인/권한, 목록 필터/페이지네이션, 목록 → 상세 이동

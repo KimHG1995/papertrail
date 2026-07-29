@@ -31,22 +31,22 @@ interface VerifyOutcome {
 // 예제 템플릿(training-notice)용 샘플. 다른 템플릿을 고르면 그 스키마에 맞게 수정하세요.
 const SAMPLE = JSON.stringify(
   {
-    org: 'PaperTrail Institute',
+    org: '페이퍼트레일 교육원',
     refNo: 'TRN-2026-000123',
-    recipient: { name: 'Jane Doe', employeeId: 'E-10482', department: 'Safety & Compliance' },
+    recipient: { name: '홍길동', employeeId: 'E-10482', department: '안전보건팀' },
     course: {
-      title: 'Workplace Safety Fundamentals',
+      title: '직장 내 안전보건 기본과정',
       period: '2026-07-06 ~ 2026-07-24',
       totalHours: 16,
     },
     sessions: [
-      { date: '2026-07-06', topic: 'Hazard Identification', hours: 4 },
-      { date: '2026-07-13', topic: 'Emergency Response Drills', hours: 6 },
-      { date: '2026-07-24', topic: 'Assessment and Review', hours: 6 },
+      { date: '2026-07-06', topic: '위험성 평가 기초', hours: 4 },
+      { date: '2026-07-13', topic: '비상대응 훈련', hours: 6 },
+      { date: '2026-07-24', topic: '평가 및 정리', hours: 6 },
     ],
     result: { passed: true, score: 92 },
     issuedAt: '2026-07-29',
-    issuer: { name: 'Alex Kim', title: 'Training Director' },
+    issuer: { name: '김철수', title: '교육원장' },
   },
   null,
   2,

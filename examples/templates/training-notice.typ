@@ -3,50 +3,50 @@
 // Papermake 는 렌더 시 요청 본문의 data 를 전역 `#data` 로 주입한다.
 // 이 템플릿은 중첩 필드, 배열 반복(table), 조건 분기를 모두 사용해 데이터 바인딩을 보여준다.
 //
-// NOTE: 기본 Papermake 이미지에는 한글(CJK) 폰트가 없어 본문은 영문으로 작성했다.
-// 한글 문서는 CJK 폰트를 컨테이너에 마운트한 뒤 사용하면 된다(README TODO 참고).
+// 한글은 FONTS_DIR(/fonts)에 마운트한 NanumGothic(OFL)로 렌더된다.
+// (docker-compose 의 papermake 볼륨 마운트 참고)
 
 #set page(paper: "a4", margin: (x: 2.2cm, y: 2cm))
-#set text(size: 10.5pt, font: "Libertinus Serif")
+#set text(font: "NanumGothic", size: 10.5pt)
 
 #align(center)[
   #text(size: 9pt, fill: gray)[#data.org]
   #v(2pt)
-  #text(size: 20pt, weight: "bold")[Training Completion Notice]
+  #text(size: 20pt, weight: "bold")[교육 이수 통지서]
   #v(-4pt)
-  #text(size: 9pt, fill: gray)[Ref. No. #data.refNo]
+  #text(size: 9pt, fill: gray)[문서번호 #data.refNo]
 ]
 
 #v(10pt)
 #line(length: 100%, stroke: 0.5pt + gray)
 #v(8pt)
 
-#text(weight: "bold")[Recipient]
+#text(weight: "bold")[수신자]
 #grid(
   columns: (5em, 1fr),
   row-gutter: 4pt,
-  [Name], [#data.recipient.name],
-  [Emp. ID], [#data.recipient.employeeId],
-  [Dept.], [#data.recipient.department],
+  [성명], [#data.recipient.name],
+  [사번], [#data.recipient.employeeId],
+  [부서], [#data.recipient.department],
 )
 
 #v(8pt)
-#text(weight: "bold")[Course]
+#text(weight: "bold")[과정 정보]
 #grid(
   columns: (5em, 1fr),
   row-gutter: 4pt,
-  [Title], [#data.course.title],
-  [Period], [#data.course.period],
-  [Hours], [#data.course.totalHours h],
+  [과정명], [#data.course.title],
+  [기간], [#data.course.period],
+  [이수시간], [#data.course.totalHours 시간],
 )
 
 #v(8pt)
-#text(weight: "bold")[Sessions]
+#text(weight: "bold")[세션]
 #table(
   columns: (auto, 1fr, auto),
   align: (left, left, right),
   inset: 6pt,
-  [*Date*], [*Topic*], [*Hours*],
+  [*일자*], [*주제*], [*시간*],
   ..data.sessions.map(s => ([#s.date], [#s.topic], [#s.hours])).flatten(),
 )
 
@@ -58,15 +58,15 @@
   radius: 4pt,
   width: 100%,
 )[
-  #text(weight: "bold")[Result:]
-  #if passed [ COMPLETED ] else [ NOT COMPLETED ]
+  #text(weight: "bold")[결과:]
+  #if passed [ 이수 완료 ] else [ 미이수 ]
   #h(1fr)
-  Score: #data.result.score / 100
+  점수: #data.result.score / 100
 ]
 
 #v(1fr)
 #align(right)[
-  Issued: #data.issuedAt \
-  #text(weight: "bold")[#data.issuer.name] — #data.issuer.title \
+  발행일: #data.issuedAt \
+  #text(weight: "bold")[#data.issuer.name], #data.issuer.title \
   #data.org
 ]
