@@ -8,7 +8,7 @@ import { Reflector } from '@nestjs/core';
 import { map, type Observable } from 'rxjs';
 import type { Request } from 'express';
 import { SKIP_RESPONSE_TRANSFORM } from '../decorators/skip-response-transform.decorator.js';
-import { successEnvelope } from '../envelope.js';
+import { successEnvelope } from '../utils/envelope.js';
 
 /**
  * 정상 응답을 { success, data, meta } 로 정형화한다.

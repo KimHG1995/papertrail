@@ -4,8 +4,8 @@ import { NestFactory } from '@nestjs/core';
 import { initTelemetry } from '@papertrail/telemetry';
 import { AppModule } from './app.module.js';
 import { requestContext } from './common/middleware/request-context.middleware.js';
-import { createMetricsMiddleware } from './metrics/metrics.middleware.js';
-import { MetricsService } from './metrics/metrics.service.js';
+import { createMetricsMiddleware } from './modules/metrics/metrics.middleware.js';
+import { MetricsService } from './modules/metrics/metrics.service.js';
 
 async function bootstrap(): Promise<void> {
   initTelemetry('papertrail-gateway');

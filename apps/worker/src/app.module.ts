@@ -1,12 +1,12 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { AnalyticsModule } from './analytics/analytics.module.js';
-import { redisConnection } from './common/redis.js';
-import { DatabaseModule } from './database/database.module.js';
-import { RenderModule } from './render/render.module.js';
-import { StorageModule } from './storage/storage.module.js';
-import { WebhookModule } from './webhook/webhook.module.js';
+import { AnalyticsModule } from './infra/analytics/analytics.module.js';
+import { redisConnection } from './infra/redis/redis.js';
+import { DatabaseModule } from './infra/database/database.module.js';
+import { RenderModule } from './modules/render/render.module.js';
+import { StorageModule } from './infra/storage/storage.module.js';
+import { WebhookModule } from './modules/webhook/webhook.module.js';
 
 /**
  * 렌더 워커 루트 모듈. ConfigModule/BullMQ(Redis)/DatabaseModule 를 구성하고
