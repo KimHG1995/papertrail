@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TrainingNotice",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["org", "refNo", "recipient", "course", "sessions", "result", "issuedAt", "issuer"],
+  "properties": {
+    "org": { "type": "string", "minLength": 1 },
+    "refNo": { "type": "string", "minLength": 1 },
+    "recipient": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "employeeId", "department"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "employeeId": { "type": "string", "minLength": 1 },
+        "department": { "type": "string", "minLength": 1 }
+      }
+    },
+    "course": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "period", "totalHours"],
+      "properties": {
+        "title": { "type": "string", "minLength": 1 },
+        "period": { "type": "string", "minLength": 1 },
+        "totalHours": { "type": "number", "minimum": 0 }
+      }
+    },
+    "sessions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["date", "topic", "hours"],
+        "properties": {
+          "date": { "type": "string", "minLength": 1 },
+          "topic": { "type": "string", "minLength": 1 },
+          "hours": { "type": "number", "minimum": 0 }
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["passed", "score"],
+      "properties": {
+        "passed": { "type": "boolean" },
+        "score": { "type": "number", "minimum": 0, "maximum": 100 }
+      }
+    },
+    "issuedAt": { "type": "string", "minLength": 1 },
+    "issuer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "title"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "title": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

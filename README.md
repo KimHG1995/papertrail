@@ -196,6 +196,23 @@ jdbc:clickhouse://localhost:8123   # user=papermake  pass=papermake123  db=paper
 
 > **ClickHouse 포트 주의:** DBeaver, DataGrip 등 JDBC/GUI 도구는 **HTTP 포트 8123**으로 붙습니다. 네이티브 TCP `9009`(호스트에서 MinIO가 9000을 점유해 재매핑됨)는 `clickhouse-client` CLI 전용이라, GUI에서 9009로 넣으면 `transport error: 400`이 납니다.
 
+### 예제 템플릿으로 전체 플로우 실행
+
+[`examples/templates/`](examples/templates/)에 데이터 바인딩 예제(교육 이수 통지서: Typst + JSON Schema + 샘플 데이터)가 있고, [`scripts/demo-flow.sh`](scripts/demo-flow.sh)로 등록부터 재현성 검증까지 한 번에 돌립니다.
+
+```bash
+# docker compose up -d + db:migrate + gateway/worker 가 떠 있는 상태에서
+./scripts/demo-flow.sh
+#   등록(publish) → 승인(DRAFT→PUBLISHED) → 문서 생성 →
+#   렌더(Papermake, PDF/A) → 서명 URL 다운로드 → 재현성 검증
+# 결과 PDF 는 /tmp/papertrail-demo/ 아래에 저장되고 경로가 출력된다.
+
+PDF_STANDARD=pdf-1.7 ./scripts/demo-flow.sh   # PDF 표준 변경
+TEMPLATE_TAG=v2 ./scripts/demo-flow.sh        # 다른 태그로 등록
+```
+
+Papermake 는 렌더 데이터를 Typst 전역 `#data` 로 주입합니다(`#data.recipient.name` 처럼 접근). 예제 템플릿은 중첩 필드, 배열 반복(table), 조건 분기를 모두 사용합니다.
+
 ---
 
 ## 참고로 알아둘 점
@@ -244,7 +261,8 @@ jdbc:clickhouse://localhost:8123   # user=papermake  pass=papermake123  db=paper
 
 - [ ] 자동화 테스트 스위트: 라이브 E2E 스크립트를 리포지토리 안(vitest 또는 `scripts/e2e`)으로 편입해 `pnpm test`로 상시 실행
 - [ ] CI 파이프라인: `pnpm run check` + E2E를 GitHub Actions에서 실행
-- [ ] Papermake 데이터 바인딩 예제 템플릿(입력 JSON을 실제 Typst에 주입)과 한글 폰트 설정
+- [x] Papermake 데이터 바인딩 예제 템플릿(입력 JSON을 Typst `#data` 로 주입) — [examples/templates](examples/templates/), `scripts/demo-flow.sh`
+- [ ] 한글(CJK) 폰트 설정: Papermake 이미지에 폰트 마운트(현재 예제는 영문)
 - [ ] Admin: 템플릿 미리보기 연동, 문서/배치 조회 화면, 로그인/권한
 - [ ] 운영 배포(로컬 compose → 실제 환경), 시크릿 관리, 관측성 수집기(OTLP) 연결
 
