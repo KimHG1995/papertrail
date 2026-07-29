@@ -69,16 +69,17 @@ PaperTrail은 각 업무 시스템이 PDF 생성 라이브러리와 렌더링 �
 
 ## 기술 스택
 
-| 레이어          | 기술                                                                 |
-| --------------- | -------------------------------------------------------------------- |
-| Admin UI        | Next.js (템플릿/작업/이력 관리)                                      |
-| API Gateway     | NestJS (인증, 멀티테넌트, 멱등성, Webhook, Signed URL)               |
-| Queue           | SQS + DLQ (또는 로컬 대체: Redis/BullMQ)                             |
-| Render Worker   | NestJS/Node 워커 → Papermake 호출, 동시성 제한                       |
-| Render Engine   | [Papermake](https://github.com/rkstgr/papermake) (Rust, Axum, Typst) |
-| Object Storage  | S3 / MinIO (PDF, 템플릿 asset, 원본 CSV)                             |
-| Analytics Store | ClickHouse (렌더 이벤트, 통계)                                       |
-| Metadata DB     | PostgreSQL (테넌트, API Key, 작업 상태, Webhook)                     |
+| 레이어          | 기술                                                                              |
+| --------------- | --------------------------------------------------------------------------------- |
+| Admin UI        | Next.js 15 (App Router, 서버 액션 기반 템플릿 등록/승인)                          |
+| API Gateway     | NestJS 11 (인증, 멀티테넌트, 멱등성, Webhook, Signed URL, 레이트 리밋, 쿼터)      |
+| Queue           | Redis + BullMQ (렌더 큐, DLQ, Webhook 큐) — 운영은 SQS로 대체 가능                |
+| Render Worker   | NestJS 워커 (BullMQ 소비, 테넌트별 동시성 제한, Papermake 호출)                   |
+| Render Engine   | [Papermake](https://github.com/rkstgr/papermake) (Rust, Axum, Typst), 공개 이미지 |
+| Object Storage  | S3 / MinIO (PDF, 템플릿 asset, 원본 CSV)                                          |
+| Analytics Store | ClickHouse (렌더 이벤트, 통계)                                                    |
+| Metadata DB     | PostgreSQL + Drizzle ORM (테넌트, API Key, 작업 상태, 증적, Webhook)              |
+| 관측성          | OpenTelemetry 트레이싱(게이트웨이→워커 전파) + Prometheus 메트릭(`/metrics`)      |
 
 ---
 
@@ -122,21 +123,27 @@ pnpm run check        # format:check + lint + lint:md + typecheck 일괄
 
 ## 로컬 개발 인프라
 
-[`docker-compose.yml`](docker-compose.yml)로 의존 서비스를 띄웁니다. 값은 `.env`([.env.example](.env.example) 복사)로 덮어쓸 수 있고, 없으면 로컬 기본값을 사용합니다.
+[`docker-compose.yml`](docker-compose.yml)로 의존 서비스를 띄웁니다. 값은 `.env`([.env.example](.env.example) 복사)로 덮어쓸 수 있고, 없으면 로컬 기본값을 사용합니다. **렌더 엔진 Papermake도 공개 이미지로 기본 스택에 포함**되어, 별도 소스 빌드 없이 실제 렌더가 동작합니다.
+
+### 처음부터 로컬로 돌리는 순서
 
 ```bash
 cp .env.example .env                       # 선택 (기본값으로도 동작)
-docker compose up -d                       # postgres, redis, minio, clickhouse + 버킷 생성
-pnpm --filter @papertrail/db db:migrate    # DB 스키마 마이그레이션 적용 (+ dev 테넌트 시드)
+docker compose up -d                       # postgres, redis, minio, clickhouse, papermake 전체
+pnpm install                               # 의존성 설치 (최초 1회)
+pnpm -r build                              # 전체 패키지/앱 빌드 (개별은 --filter)
+pnpm --filter @papertrail/db db:migrate    # DB 마이그레이션 + dev 테넌트/API Key 시드
 ```
 
-그다음 게이트웨이와 렌더 워커를 각각 띄웁니다(별도 터미널). 워커는 기본값 `PAPERMAKE_DRIVER=fake`로 Papermake(Rust) 없이 파이프라인 전체를 돌립니다.
+이어서 게이트웨이, 렌더 워커, Admin 콘솔을 각각 띄웁니다(별도 터미널). 기본 렌더 드라이버는 `PAPERMAKE_DRIVER=http`라서, 위 스택의 Papermake를 실제로 호출합니다.
 
 ```bash
 pnpm --filter @papertrail/gateway dev   # API 게이트웨이 (http://localhost:3000, prefix /v1)
-pnpm --filter @papertrail/worker dev    # 렌더 워커 (렌더 큐 소비 → Papermake 호출 → 증적 갱신)
-pnpm --filter @papertrail/admin dev     # Admin 콘솔 (http://localhost:3001, 게이트웨이 API 소비)
+pnpm --filter @papertrail/worker dev    # 렌더 워커 (렌더 큐 소비 → Papermake 렌더 → 증적 갱신)
+pnpm --filter @papertrail/admin dev     # Admin 콘솔 (http://localhost:3001)
 ```
+
+> **다시 켤 때:** `docker compose down -v`로 볼륨까지 지웠다면 데이터가 초기화되므로 `db:migrate`를 다시 실행해야 합니다. `docker compose stop` / `start`로 볼륨을 유지했다면 마이그레이션은 생략해도 됩니다.
 
 문서 API 는 API Key 인증이 필요합니다(`Authorization: Bearer <key>`). 마이그레이션이 로컬 개발용 키(`pt_dev_papertrail_local_key`, `tenant_dev` 소속)를 시드합니다.
 
@@ -144,7 +151,7 @@ pnpm --filter @papertrail/admin dev     # Admin 콘솔 (http://localhost:3001, �
 curl -X POST http://localhost:3000/v1/documents \
   -H 'Authorization: Bearer pt_dev_papertrail_local_key' \
   -H 'Content-Type: application/json' \
-  -d '{"template":"training-notice:2026-v2","document":{"title":"교육 통지"}}'
+  -d '{"template":"training-notice:2026-v2","document":{"title":"교육 통지"},"pdfStandard":"a-3b"}'
 ```
 
 | 서비스     | 호스트 포트                  | 용도                           | 기본 자격증명              |
@@ -153,21 +160,65 @@ curl -X POST http://localhost:3000/v1/documents \
 | Redis      | 6379                         | BullMQ 큐/DLQ                  | (없음)                     |
 | MinIO      | 9000 (API), 9001 (콘솔)      | S3 호환 오브젝트 스토리지      | `minioadmin`/`minioadmin`  |
 | ClickHouse | 8123 (HTTP), 9009 (네이티브) | 렌더 이벤트, 통계 집계         | `papermake`/`papermake123` |
-| Papermake  | 3100                         | 렌더 엔진 (profile: papermake) | S3+ClickHouse 사용         |
+| Papermake  | 3100                         | 렌더 엔진 (Typst → PDF, PDF/A) | 공개 이미지, S3+ClickHouse |
 
 - 시작 시 MinIO 버킷 `papertrail`, `papermake` 와 ClickHouse `papertrail` 데이터베이스가 자동 생성됩니다.
-- **Papermake**는 공개 이미지가 없어 소스에서 빌드하며(무겁고 ClickHouse를 요구), 기본 기동에서 제외됩니다. 필요할 때만:
+- **Papermake**는 공개 이미지 [`ghcr.io/rkstgr/papermake`](https://github.com/rkstgr/papermake)를 사용하므로 소스 빌드가 필요 없습니다. 태그는 `PAPERMAKE_IMAGE_TAG`(기본 `v0.3.0`)로 고정할 수 있습니다.
+- 렌더 드라이버는 `PAPERMAKE_DRIVER`로 고릅니다. `http`(기본, 실제 Papermake 호출)와 `fake`(Papermake 없이 결정적 가짜 렌더로 파이프라인만 검증)가 있습니다. Papermake를 띄우지 않고 가볍게 돌리려면 `PAPERMAKE_DRIVER=fake`로 두세요.
 
-  ```bash
-  git clone https://github.com/rkstgr/papermake third_party/papermake
-  docker compose --profile papermake up -d
-  ```
+---
+
+## 참고로 알아둘 점
+
+- **Node 버전:** 엔진 요구는 `>=24`(LTS 고정)입니다. 로컬 Node가 22 등 하위 버전이면 pnpm이 `Unsupported engine` 경고를 내지만, 빌드/실행/동작에는 영향이 없습니다. 경고를 없애려면 `mise install` 또는 `nvm use`로 24에 맞추세요.
+- **검증 방식:** 현재 자동화된 단위/통합 테스트 스위트는 없고, 검증은 실제 스택을 띄워 종단(E2E)으로 확인합니다(등록 → 승인 → 비동기 렌더 → 다운로드 → 재현성 검증). 상시 회귀 편입은 아래 TODO 참조.
+- **검증 완료 범위:** 실제 Papermake로 PDF/A(a-3b) 렌더, 서명 다운로드 URL, 재현성 검증(동일 입력 재렌더 시 outputHash 일치), Admin 등록/승인(서버 액션)까지 로컬에서 종단 통과했습니다.
+- **포트:** 게이트웨이 3000, Admin 3001, Papermake 3100을 씁니다. 충돌 시 `.env`(`PORT`, `PAPERMAKE_PORT`) 또는 실행 옵션으로 바꾸세요.
+- **로컬 시크릿:** `pt_dev_papertrail_local_key`(테넌트 `tenant_dev`)와 입력 암호화 키(`INPUT_ENCRYPTION_KEY`)는 개발용 시드 값입니다. 운영에서는 반드시 교체하세요.
 
 ---
 
 ## 상태
 
-🟢 **M1 코어 완료, M2 진행 중** — 공용 계약 패키지(`@papertrail/contracts`), NestJS 게이트웨이(표준 통신 프로토콜 + API Key 인증/테넌트 격리 + 템플릿 등록/JSON Schema 검증 + CSV 대량 생성 + Webhook 등록), 영속성 계층(`@papertrail/db`, Drizzle ORM), 비동기 렌더 파이프라인(BullMQ 큐 + `@papertrail/worker` 렌더 워커 + 테넌트별 동시성 제한 + `@papertrail/papermake-client`), 오브젝트 스토리지(`@papertrail/storage`, S3/MinIO), HMAC 서명 Webhook 발송(재시도/추적), ClickHouse 렌더 이벤트 적재 + 통계 API(`@papertrail/analytics`), 템플릿 승인 워크플로(DRAFT→PUBLISHED, PUBLISHED 만 렌더), 테넌트별 레이트 리밋(429 + Retry-After), 재현성 검증(동일 입력 재렌더 → outputHash 대조), 운영 감사 로그(변경 요청 자동 기록), PII 마스킹(입력 원문 미저장, 마스킹된 미리보기만 저장), Prometheus 메트릭(`/metrics`), 월 렌더 쿼터(`GET /v1/usage`), 분산 트레이싱(OpenTelemetry, 게이트웨이→워커 전파), 템플릿 미리보기(발행 전 동기 렌더), 입력 원문 암호화 저장(AES-256-GCM 옵트인 → 서버 단독 재현 검증), Admin 콘솔(Next.js, 서버 렌더 대시보드/템플릿/감사 로그)까지 구성했습니다. `Bearer` 인증 → 템플릿 등록(publish) → `POST /v1/documents`(입력 JSON Schema 검증) 또는 `POST /v1/batches`(CSV 대량) → PostgreSQL 증적 저장(멱등성) → 큐 적재 → 워커 렌더(재시도/DLQ) → 결과 PDF S3 저장 → Signed URL 다운로드/배치 리포트 → 완료 시 Webhook 발송 흐름이 로컬에서 동작합니다. 구현 마일스톤은 [06. 로드맵](docs/06-roadmap.md) 참조.
+🟢 **M1 코어 완료, M2 진행 중.** 아래 기능이 로컬에서 종단 동작합니다(실제 Papermake 렌더 포함). 전체 마일스톤은 [06. 로드맵](docs/06-roadmap.md) 참조.
+
+### 공용 계약, 게이트웨이
+
+- 표준 통신 프로토콜(Zod 검증, `{success,data,meta}` 성공 봉투, RFC 7807 문제+json 에러, `traceId`)
+- API Key 인증, 멀티테넌트 격리, 테넌트별 레이트 리밋(429 + `Retry-After`), 월 렌더 쿼터(`GET /v1/usage`)
+- 공용 계약 패키지 `@papertrail/contracts`(Zod 스키마 + 타입)
+
+### 템플릿, 렌더 파이프라인
+
+- 템플릿 등록(publish) → 승인 워크플로(DRAFT→REVIEWING→APPROVED→PUBLISHED, PUBLISHED만 렌더)
+- 입력 JSON Schema 검증, 템플릿 미리보기(발행 전 동기 렌더)
+- 문서 단건(`POST /v1/documents`), CSV 대량(`POST /v1/batches`), 멱등성 보장
+- 비동기 렌더(BullMQ 큐 + DLQ + 재시도), 테넌트별 동시성 제한
+- 실제 Papermake 렌더 + PDF/A(a-2b, a-3b) 변환, S3 저장, Signed URL 다운로드
+
+### 증적, 보안, 관측성
+
+- 재현성 검증(동일 입력 재렌더 → outputHash 대조), 운영 감사 로그(변경 요청 자동 기록)
+- PII 마스킹(입력 원문 미저장, 마스킹 미리보기만) + 입력 원문 암호화 저장(AES-256-GCM 옵트인 → 서버 단독 재현 검증)
+- HMAC 서명 Webhook 발송(재시도, 추적), ClickHouse 렌더 이벤트 적재 + 통계 API
+- 분산 트레이싱(OpenTelemetry, 게이트웨이→워커 전파), Prometheus 메트릭(`/metrics`)
+
+### Admin 콘솔 (Next.js)
+
+- 서버 렌더 대시보드(사용량, 통계), 감사 로그 조회
+- 템플릿 등록 폼 + 승인 워크플로 UI(서버 액션 기반, API Key는 서버에만 보관)
+
+---
+
+## TODO (남은 작업)
+
+- [ ] 자동화 테스트 스위트: 라이브 E2E 스크립트를 리포지토리 안(vitest 또는 `scripts/e2e`)으로 편입해 `pnpm test`로 상시 실행
+- [ ] CI 파이프라인: `pnpm run check` + E2E를 GitHub Actions에서 실행
+- [ ] Papermake 데이터 바인딩 예제 템플릿(입력 JSON을 실제 Typst에 주입)과 한글 폰트 설정
+- [ ] Admin: 템플릿 미리보기 연동, 문서/배치 조회 화면, 로그인/권한
+- [ ] 운영 배포(로컬 compose → 실제 환경), 시크릿 관리, 관측성 수집기(OTLP) 연결
+
+---
 
 ## 라이선스
 
