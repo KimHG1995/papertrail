@@ -65,10 +65,13 @@ export type DownloadInfo = z.infer<typeof DownloadInfo>;
  * POST /v1/documents/{id}/verify 요청 본문.
  * document 를 주면 그 입력으로 검증하고, 생략하면 저장된 암호화 입력(있을 때)으로 서버가 검증한다.
  */
-export const VerifyDocumentRequest = z.object({
-  recipient: JsonObject.optional(),
-  document: JsonObject.optional(),
-});
+export const VerifyDocumentRequest = z
+  .object({
+    recipient: JsonObject.optional(),
+    document: JsonObject.optional(),
+  })
+  // 본문 없이 호출하면 저장된 암호화 입력으로 서버가 단독 재현 검증한다.
+  .default({});
 export type VerifyDocumentRequest = z.infer<typeof VerifyDocumentRequest>;
 
 /** 저장된 해시 vs 재계산 해시 비교. */

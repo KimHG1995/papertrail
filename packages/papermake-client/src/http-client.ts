@@ -1,4 +1,5 @@
 import type { PdfStandard } from '@papertrail/contracts';
+import { PapermakeError } from './errors.js';
 import type {
   PapermakeClient,
   PublishInput,
@@ -6,6 +7,9 @@ import type {
   RenderInput,
   RenderOutput,
 } from './types.js';
+
+/** Papermake 는 metadata.author 가 비어 있으면 400 을 반환하므로 폴백을 둔다. */
+const DEFAULT_AUTHOR = 'papertrail';
 
 /** 우리 PdfStandard → Papermake 가 기대하는 값(1.7 은 접두사 없음)으로 매핑. */
 const PDF_STANDARD_MAP: Record<PdfStandard, string> = {
@@ -41,6 +45,9 @@ export class HttpPapermakeClient implements PapermakeClient {
   }
 
   async publish(input: PublishInput): Promise<PublishOutput> {
+    // 빈 문자열(공백만)도 Papermake 는 거부하므로 길이를 명시적으로 확인해 폴백한다(?? 로는 불가).
+    const trimmedAuthor = input.author?.trim();
+    const author = trimmedAuthor && trimmedAuthor.length > 0 ? trimmedAuthor : DEFAULT_AUTHOR;
     const res = await this.fetchImpl(
       `${this.baseUrl}/api/templates/${input.name}/publish-simple?tag=${encodeURIComponent(input.tag)}`,
       {
@@ -48,13 +55,17 @@ export class HttpPapermakeClient implements PapermakeClient {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           main_typ: input.source,
-          metadata: { name: input.name, author: input.author ?? '' },
+          metadata: { name: input.name, author },
           ...(input.schema ? { schema: input.schema } : {}),
         }),
       },
     );
     if (!res.ok) {
-      throw new Error(`Papermake publish 실패: ${res.status} ${await safeText(res)}`);
+      throw new PapermakeError(
+        res.status,
+        'publish',
+        `Papermake publish 실패: ${await safeText(res)}`,
+      );
     }
     const body = (await res.json()) as {
       data?: { hash?: unknown; manifest_hash?: unknown; pdf_hash?: unknown };
@@ -80,13 +91,17 @@ export class HttpPapermakeClient implements PapermakeClient {
       }),
     });
     if (!renderRes.ok) {
-      throw new Error(`Papermake render 실패: ${renderRes.status} ${await safeText(renderRes)}`);
+      throw new PapermakeError(
+        renderRes.status,
+        'render',
+        `Papermake render 실패: ${await safeText(renderRes)}`,
+      );
     }
     const { data } = (await renderRes.json()) as RenderResponseBody;
 
     const pdfRes = await this.fetchImpl(`${this.baseUrl}/api/renders/${data.render_id}/pdf`);
     if (!pdfRes.ok) {
-      throw new Error(`Papermake PDF 다운로드 실패: ${pdfRes.status}`);
+      throw new PapermakeError(pdfRes.status, 'download', `Papermake PDF 다운로드 실패`);
     }
     const pdf = new Uint8Array(await pdfRes.arrayBuffer());
 
@@ -101,7 +116,7 @@ export class HttpPapermakeClient implements PapermakeClient {
 
   /**
    * Papermake 는 콘텐츠 주소 기반이라 템플릿 메타데이터에서 매니페스트 해시를 얻는다.
-   * 정확한 필드명은 러닝 중인 Papermake 로 확정한다(현재는 안전하게 null 폴백).
+   * v0.3.0 기준 GET /api/templates/{ref} → { data: { manifest_hash } }. 실패 시 null 폴백.
    */
   private async resolveTemplateHash(reference: string): Promise<string | null> {
     try {

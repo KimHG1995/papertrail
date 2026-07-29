@@ -136,3 +136,150 @@ tr:last-child td {
   border-radius: 10px;
   padding: 16px;
 }
+
+h3 {
+  font-size: 14px;
+  margin: 22px 0 8px;
+}
+
+.tpl-block {
+  margin-bottom: 8px;
+}
+
+/* --- 등록 폼 --- */
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 12px;
+}
+
+.form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.form input,
+.form textarea {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 11px;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.form textarea {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  resize: vertical;
+}
+
+.form input:focus,
+.form textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.form-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* --- 버튼 --- */
+button.primary,
+button.secondary {
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+button.primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+button.secondary {
+  background: transparent;
+  color: var(--muted);
+  border-color: var(--border);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.row-actions button {
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+.ok-msg {
+  color: var(--ok);
+  font-size: 12px;
+}
+
+.fail-msg {
+  color: var(--fail);
+  font-size: 12px;
+}
+
+/* --- 상태 배지 --- */
+.badge {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+}
+
+.badge.draft {
+  color: var(--muted);
+}
+
+.badge.reviewing {
+  color: #d29922;
+  border-color: #d29922;
+}
+
+.badge.approved {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.badge.published {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+
+.badge.deprecated {
+  color: var(--fail);
+  border-color: var(--fail);
+}

@@ -12,7 +12,7 @@ import type {
   TemplateTags,
 } from '@papertrail/contracts';
 import { type Database, newId, template, templateTag, templateVersion } from '@papertrail/db';
-import type { PapermakeClient } from '@papertrail/papermake-client';
+import { PapermakeError, type PapermakeClient } from '@papertrail/papermake-client';
 import { previewKey, type StorageClient } from '@papertrail/storage';
 import { and, desc, eq } from 'drizzle-orm';
 import {
@@ -88,7 +88,7 @@ export class TemplatesService {
       this.validator.assertValidSchema(req.schema);
     }
 
-    const { manifestHash } = await this.papermake.publish({
+    const { manifestHash } = await this.publishOrMap({
       name,
       tag,
       source: req.source,
@@ -137,6 +137,49 @@ export class TemplatesService {
       state: version.state,
       createdAt: version.createdAt.toISOString(),
     };
+  }
+
+  /**
+   * Papermake publish 를 호출하되 실패를 도메인 에러로 매핑한다.
+   * 4xx(잘못된 Typst 소스 등 호출자 입력 문제) → 400, 5xx/네트워크 → 502 RENDER_UPSTREAM.
+   */
+  private async publishOrMap(
+    input: Parameters<PapermakeClient['publish']>[0],
+  ): ReturnType<PapermakeClient['publish']> {
+    try {
+      return await this.papermake.publish(input);
+    } catch (err) {
+      if (err instanceof PapermakeError) {
+        if (err.isClientError) {
+          throw new ProblemException('BAD_REQUEST', `템플릿 등록 실패(Papermake): ${err.message}`);
+        }
+        throw new ProblemException('RENDER_UPSTREAM', `렌더 엔진 오류: ${err.message}`);
+      }
+      throw new ProblemException('RENDER_UPSTREAM', '렌더 엔진에 연결하지 못했습니다.');
+    }
+  }
+
+  /**
+   * 미리보기 동기 렌더를 호출하되 실패를 도메인 에러로 매핑한다.
+   * 4xx(Typst 컴파일 오류 등 작성자 입력 문제) → 400, 그 외 → 502 RENDER_UPSTREAM.
+   */
+  private async renderOrMap(
+    input: Parameters<PapermakeClient['render']>[0],
+  ): ReturnType<PapermakeClient['render']> {
+    try {
+      return await this.papermake.render(input);
+    } catch (err) {
+      if (err instanceof PapermakeError) {
+        if (err.isClientError) {
+          throw new ProblemException(
+            'BAD_REQUEST',
+            `미리보기 렌더 실패(Papermake): ${err.message}`,
+          );
+        }
+        throw new ProblemException('RENDER_UPSTREAM', `렌더 엔진 오류: ${err.message}`);
+      }
+      throw new ProblemException('RENDER_UPSTREAM', '렌더 엔진에 연결하지 못했습니다.');
+    }
   }
 
   /**
@@ -193,7 +236,7 @@ export class TemplatesService {
       }
     }
 
-    const result = await this.papermake.render({
+    const result = await this.renderOrMap({
       template: `${name}@${req.manifestHash}`,
       pdfStandard: req.pdfStandard,
       data: req.data,

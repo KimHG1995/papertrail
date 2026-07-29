@@ -16,14 +16,14 @@ export const papermakeClientProvider: Provider = {
   provide: PAPERMAKE_CLIENT,
   inject: [ConfigService],
   useFactory: (config: ConfigService): PapermakeClient => {
-    const driver = config.get<string>('PAPERMAKE_DRIVER', 'fake');
+    const driver = config.get<string>('PAPERMAKE_DRIVER', 'http');
     const logger = new Logger('PapermakeClient');
-    if (driver === 'http') {
-      const baseUrl = config.getOrThrow<string>('PAPERMAKE_URL');
-      logger.log(`http 드라이버 사용: ${baseUrl}`);
-      return new HttpPapermakeClient({ baseUrl });
+    if (driver === 'fake') {
+      logger.log('fake 드라이버 사용(Papermake 없이 로컬 개발)');
+      return new FakePapermakeClient();
     }
-    logger.log('fake 드라이버 사용(로컬 개발)');
-    return new FakePapermakeClient();
+    const baseUrl = config.get<string>('PAPERMAKE_URL', 'http://localhost:3100');
+    logger.log(`http 드라이버 사용: ${baseUrl}`);
+    return new HttpPapermakeClient({ baseUrl });
   },
 };

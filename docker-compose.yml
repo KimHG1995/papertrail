@@ -1,7 +1,8 @@
 # PaperTrail 로컬 개발 인프라
 #
-# 기본 기동:   docker compose up -d          (postgres, redis, minio, clickhouse + 버킷 생성)
-# Papermake:  docker compose --profile papermake up -d   (Rust 소스 빌드, 무거움)
+# 기본 기동:   docker compose up -d
+#   postgres, redis, minio(+버킷), clickhouse, papermake(렌더 엔진) 전체가 뜬다.
+#   papermake 는 공개 이미지 ghcr.io/rkstgr/papermake 를 쓰므로 소스 빌드가 필요 없다.
 #
 # 값은 .env 로 덮어쓸 수 있으며, 없으면 아래 로컬 기본값을 사용한다.
 
@@ -103,15 +104,10 @@ services:
       timeout: 5s
       retries: 15
 
-  # 렌더 엔진. 공개 이미지가 없어 소스에서 빌드한다(무거우므로 profile 로 분리).
-  #   git clone https://github.com/rkstgr/papermake third_party/papermake
-  #   docker compose --profile papermake up -d
+  # 렌더 엔진(공개 이미지 ghcr.io/rkstgr/papermake). 기본 스택에 포함된다.
   papermake:
-    build:
-      context: ./third_party/papermake
-      dockerfile: crates/papermake-server/Dockerfile
+    image: ghcr.io/rkstgr/papermake:${PAPERMAKE_IMAGE_TAG:-v0.3.0}
     container_name: papertrail-papermake
-    profiles: ['papermake']
     restart: unless-stopped
     environment:
       HOST: '0.0.0.0'
@@ -125,7 +121,7 @@ services:
       CLICKHOUSE_DATABASE: ${CLICKHOUSE_DB:-papermake}
       CLICKHOUSE_USER: ${CLICKHOUSE_USER:-papermake}
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-papermake123}
-      RUST_LOG: 'papermake_server=debug,papermake_registry=debug'
+      RUST_LOG: 'papermake_server=info'
     ports:
       - '${PAPERMAKE_PORT:-3100}:3000'
     depends_on:
